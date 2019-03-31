@@ -1,12 +1,12 @@
-class ArrowGen:
-    def __init__(self):
-        self._o_arrows = "↑↗→↘↓↙←↖"
-        self._e_arrows = "⇧⬀⇨⬂⇩⬃⇦⬁"
-        self._f_arrows = "⬆⬈⮕⬊⬇⬋⬅⬉"
+import os
+
+import pygame
+from assets import *
 
 
 class Board:
     def __init__(self, width, height):
+        self._ships = []
         self._objects = []
         self._width = width
         self._height = height
@@ -16,50 +16,41 @@ class Board:
             x, y = grid_to_coord(grid_ref)
         else:
             pass
-        found = []
+        found_ships = []
+        found_objects = []
+        for s in self._ships:
+            if s.get_x() == x and s.get_y() == y:
+                found_ships.append(s)
         for o in self._objects:
-            if o.is_at():
-                found.append(o)
-        return found
+            if o.get_pos() == (x, y):
+                found_objects.append(o)
+        return found_ships, found_objects
+
+    def add_ship(self, new_ship):
+        self._ships.append(new_ship)
 
     def add_object(self, new_object):
-        self._objects = []
-
-
-class SpaceObject:
-    def __init__(self, description, direction, location):
-        self._description = description
-        self._direction = direction
-        self._location = location
-
-    def get_pos(self):
-        return self._location
-
-    def get_direction(self):
-        return self._direction
-
-    def get_desc(self):
-        return self._description
-
-
-class TravelTrail(SpaceObject):
-    pass
-
-
-class Ship(SpaceObject):
-    pass
-
-
-class Decoy(SpaceObject):
-    pass
+        self._objects.append(new_object)
 
 
 class Game:
     def __init__(self, width, height):
+        self._height = height
+        self._width = width
         self._board = Board(width, height)
 
-    def move_ship(self, move_sequence):
-        pass
+    def display(self):
+        os.system("cls")
+        print("-------------------")
+        for y in range(self._height):
+            for x in range(self._width):
+                ships, objects = self._board.get_objects_in_space(x=x, y=y)
+                if len(ships) + len(objects) > 0:
+                    print("X", end="")
+                else:
+                    print(" ", end="")
+            print()
+        print("-------------------")
 
 
 def is_adjacent(point1, point2):
@@ -81,3 +72,10 @@ def coord_to_grid(coord):
 
 def main():
     game = Game(24, 24)
+    game._board.add_ship(Ship("ship", "NE", (5, 5)))
+    while True:
+        game.display()
+        input()
+        game._board._ships[0].move()
+
+main()
