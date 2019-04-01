@@ -4,12 +4,15 @@ import pygame
 from assets import *
 
 
-class Board:
-    def __init__(self, width, height):
+class Game:
+    def __init__(self, grid_width, grid_height, board_pos, board_width, board_height):
         self._ships = []
         self._objects = []
-        self._width = width
-        self._height = height
+        self._grid_width = grid_width
+        self._grid_height = grid_height
+        self._board_pos = board_pos
+        self._board_width = board_width
+        self._board_height = board_height
 
     def get_objects_in_space(self, grid_ref=None, x=None, y=None):
         if grid_ref is not None:
@@ -22,7 +25,7 @@ class Board:
             if s.get_x() == x and s.get_y() == y:
                 found_ships.append(s)
         for o in self._objects:
-            if o.get_pos() == (x, y):
+            if o.get_x() == x and o.get_y() == y:
                 found_objects.append(o)
         return found_ships, found_objects
 
@@ -32,25 +35,48 @@ class Board:
     def add_object(self, new_object):
         self._objects.append(new_object)
 
+    def remove_ship(self, index):
+        p = self._ships.pop(index)
 
-class Game:
-    def __init__(self, width, height):
-        self._height = height
-        self._width = width
-        self._board = Board(width, height)
+    def remove_object(self, index):
+        p = self._objects.pop(index)
 
-    def display(self):
-        os.system("cls")
-        print("-------------------")
-        for y in range(self._height):
-            for x in range(self._width):
-                ships, objects = self._board.get_objects_in_space(x=x, y=y)
-                if len(ships) + len(objects) > 0:
-                    print("X", end="")
-                else:
-                    print(" ", end="")
-            print()
-        print("-------------------")
+    def move_ship(self, index):
+        self.add_object(TravelTrail("Created By {}".format(self._ships[index].get_description()),
+                                    self._ships[index].get_direction(),
+                                    self._ships[index].get_pos()))
+        self._ships[index].move()
+
+    def turn_ship(self, index, direction):
+        self._ships[index].turn(direction)
+
+    def _purge_objects(self):
+        i = 0
+        while i < len(self._objects):
+            if self._objects[i].get_ttl() == 0:
+                self._objects.remove(self._objects[i])
+            else:
+                i += 1
+
+    def _decrement_ttls(self):
+        for o in self._objects:
+            o.decrement_ttl()
+
+    def tick(self):
+        self._decrement_ttls()
+        self._purge_objects()
+        
+    def draw_board(self):
+
+
+    def draw_assets(self, screen):
+        real_x = real_y = 0 # TODO: Add code to get proper positions.
+
+        for o in self._objects:
+            o.draw(screen, real_x, real_y)
+
+        for s in self._ships:
+            s.draw(screen, real_x, real_y)
 
 
 def is_adjacent(point1, point2):
@@ -70,12 +96,13 @@ def grid_to_coord(grid_ref):
 def coord_to_grid(coord):
     return chr(coord[0] + 65) + str(coord[1] + 1)
 
+
 def main():
+
     game = Game(24, 24)
-    game._board.add_ship(Ship("ship", "NE", (5, 5)))
-    while True:
-        game.display()
-        input()
-        game._board._ships[0].move()
+    game.add_ship(Ship("Louis", DIRECTIONS.index("E"), (3, 12)))
+
+
+
 
 main()
