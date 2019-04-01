@@ -1,13 +1,22 @@
+import os
+
+import pygame
+
+pygame.font.init()
 DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+COLOURS = ["black", "white", "yellow", "green", "blue", "red"]
+SPRITE_FOLDER = "sprites"
 
 
 class SpaceObject:
-    def __init__(self, description, direction, location):
+    def __init__(self, description, direction, location, colour):
+        assert colour in COLOURS
         self._description = description
         self._direction = direction
         self._location = list(location)
-        self._char = "X"
         self._ttl = -1
+        self._colour = colour
+        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
 
     def get_pos(self):
         return self._location
@@ -23,6 +32,9 @@ class SpaceObject:
 
     def get_description(self):
         return self._description
+
+    def get_colour(self):
+        return self._colour
 
     def move(self, distance=1):
         direction = DIRECTIONS[self._direction]
@@ -52,24 +64,24 @@ class SpaceObject:
         if self._ttl > 0:
             self._ttl -= 1
 
-    def draw(self, screen, real_x, real_y):
-        pass
+    def get_image(self, cell_size):
+        image = pygame.transform.scale(self._image, (cell_size, cell_size))
+        image = pygame.transform.rotate(image, self._direction * -45)
+        return image
 
 
 class TravelTrail(SpaceObject):
-    def __init__(self, description, direction, location):
-        super().__init__(description, direction, location)
-        self._char = "⁞"
-        self._ttl = 5
+    def __init__(self, description, direction, location, colour):
+        super().__init__(description, direction, location, colour)
+        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "trail-{}.png".format(self._colour)))
+        self._ttl = 4
 
 
 class Ship(SpaceObject):
-    def __init__(self, description, direction, location):
-        super().__init__(description, direction, location)
-        self._char = "▲"
+    def __init__(self, description, direction, location, colour):
+        super().__init__(description, direction, location, colour)
+        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
 
 
 class Decoy(SpaceObject):
-    def __init__(self, description, direction, location):
-        super().__init__(description, direction, location)
-        self._char = "◘"
+    pass
