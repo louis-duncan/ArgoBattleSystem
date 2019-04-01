@@ -81,6 +81,7 @@ class Ship(SpaceObject):
     def __init__(self, description, direction, location, colour):
         super().__init__(description, direction, location, colour)
         self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
+        self._turn_history = []
 
 
 class Decoy(SpaceObject):
