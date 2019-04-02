@@ -1,19 +1,19 @@
 import pygame
+import time
 
 FONT_SIZE = 30
-FONT = pygame.font.Font(pygame.font.match_font("calibri"), FONT_SIZE)
-
-class ShipInfo:
-    def __init__(self, game, ship_index):
-        pass
+FONT = pygame.font.Font(pygame.font.match_font("arial"), FONT_SIZE)
 
 
 class Box:
-    def __init__(self, pos, width, height, colour):
+    def __init__(self, pos, width, height, colour, bind_text="", bind_key=None):
         self._pos = list(pos)
         self._width = width
         self._height = height
         self._colour = colour
+        self._last_ping_time = 0
+        self._bind_text = bind_text
+        self._bind_key = bind_key
 
     def get_x(self):
         return self._pos[0]
@@ -54,25 +54,38 @@ class Box:
     def get_rect(self):
         return self._pos[0], self._pos[1], self._width, self._height
 
+    def get_ping_rect(self):
+        return self._pos[0] - 3, self._pos[1] - 3, self._width + 6, self._height + 6
+
     def draw(self, screen, draw_colour=None):
         if draw_colour is None:
             draw_colour = self._colour
+
+        if time.time() - self._last_ping_time < 0.1:
+            pygame.draw.rect(screen, [int(round(i / 2)) for i in draw_colour], self.get_ping_rect())
+
         pygame.draw.rect(screen, draw_colour, self.get_rect())
 
     def pos_in_bound(self, pos):
         result = (self._pos[0] < pos[0] < self._pos[0] + self._width) and (self._pos[1] < pos[1] < self._pos[1] + self._height)
-        print(pos, result)
         return result
+
+    def ping(self):
+        self._last_ping_time = time.time()
+
+    def get_bind_text(self):
+        return self._bind_text
+
+    def get_bind_key(self):
+        return self._bind_key
 
 
 class Button(Box):
-    def __init__(self, pos, width, height, colour, text, text_col, bind_text, bind_key=None):
-        super().__init__(pos, width, height, colour)
+    def __init__(self, pos, width, height, colour, bind_text, bind_key=None, text="", text_col=(100, 100, 100)):
+        super().__init__(pos, width, height, colour, bind_text, bind_key)
         self._text_colour = text_col
         self._text = text
         self._is_clicked = False
-        self._bind_text = bind_text
-        self._bind_key = bind_key
 
     def get_text(self):
         return self._text
@@ -86,9 +99,12 @@ class Button(Box):
     def set_text_col(self, col):
         self._text_colour = col
 
-    def set_clicked(self, state):
+    def set_state(self, state):
         assert state in (True, False)
         self._is_clicked = state
+
+    def get_state(self):
+        return self._is_clicked
 
     def draw(self, screen, draw_colour=None):
         if draw_colour is None:
@@ -104,9 +120,3 @@ class Button(Box):
                     self._pos[1] + ((self._height / 2) - (text_size[1] / 2)))
 
         screen.blit(text_r, text_pos)
-
-    def get_bind_text(self):
-        return self._bind_text
-
-    def get_bind_key(self):
-        return self._bind_key

@@ -48,13 +48,12 @@ class SpaceObject:
             self._location[0] -= distance
 
     def turn(self, direction):
-        direction = direction.upper()
-        if direction == "LEFT":
+        if direction == "left":
             self._direction -= 1
-        elif direction == "RIGHT":
+        elif direction == "right":
             self._direction += 1
         else:
-            pass
+            print("Invalid direction:", direction)
         self._direction = self._direction % len(DIRECTIONS)
 
     def get_ttl(self):
