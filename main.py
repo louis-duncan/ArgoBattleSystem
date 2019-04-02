@@ -1,9 +1,9 @@
-import os
+from assets import *
+from control_objects import *
 
 import pygame
-pygame.init()
 
-from assets import *
+pygame.init()
 
 
 class Game:
@@ -17,6 +17,8 @@ class Game:
         self._round = 0
         self._font = pygame.font.Font(pygame.font.match_font("arial"), 20, bold=True)
         self._history = []
+        self._control_objects = []
+        self._selected_ship = 0
 
     def get_objects_in_space(self, grid_ref=None, x=None, y=None):
         if grid_ref is not None:
@@ -94,14 +96,14 @@ class Game:
             pygame.draw.line(screen, (0, 0, 0), start_pos, end_pos, 2)
 
         for x in range(self._grid_width):
-            char = self._font.render(chr(x + 65), 1, (0, 0, 0,), (255, 255, 255))
+            char = self._font.render(str(x + 1), 1, (0, 0, 0,), (255, 255, 255))
             width, height = char.get_size()
             x = self._board_pos[0] + (self._cell_size * x) + (self._cell_size / 2) - (width / 2)
             y = self._board_pos[1] - (self._cell_size / 2) - (height / 2)
             screen.blit(char, (x, y))
 
         for y in range(self._grid_height):
-            char = self._font.render(str(y + 1), 1, (0, 0, 0), (255, 255, 255))
+            char = self._font.render(chr(y + 65), 1, (0, 0, 0), (255, 255, 255))
             width, height = char.get_size()
             x = self._board_pos[0] - (self._cell_size / 2) - (width / 2)
             y = self._board_pos[1] + (y * self._cell_size) + (self._cell_size / 2) - (height / 2)
@@ -115,6 +117,14 @@ class Game:
             scaled_pos = (round((x * self._cell_size) + self._board_pos[0] + (self._cell_size / 2) - (image_size[0] / 2)),
                           round((y * self._cell_size) + self._board_pos[1] + (self._cell_size / 2) - (image_size[1] / 2)))
             screen.blit(image, scaled_pos)
+
+    def add_control_objects(self, control_obj):
+        self._control_objects.append(control_obj)
+        return self._control_objects.index(control_obj)
+
+    def draw_control_objects(self, screen):
+        for o in self._control_objects:
+            o.draw(screen)
 
     def _add_history(self, history_item):
         self._history.append(history_item)
@@ -136,6 +146,58 @@ class Game:
             else:
                 pass
 
+    def draw(self, screen):
+        self.draw_assets(screen)
+        self.draw_control_objects(screen)
+        self.draw_board(screen)
+
+    def get_clicked(self, pos):
+        i = len(self._control_objects) - 1
+        found = False
+        while i >= 0 and found is False:
+            if self._control_objects[i].pos_in_bound(pos):
+                found = True
+            else:
+                i -= 1
+        if found:
+            return i
+        else:
+            return None
+
+    def set_clicked(self, index, state=True):
+        self._control_objects[index].set_clicked(state)
+
+    def clear_clicks(self):
+        for co in self._control_objects:
+            co.set_clicked(False)
+
+    def get_co_by_key(self, key):
+        for co in self._control_objects:
+            if co.get_bind_key() == key:
+                return self._control_objects.index(co)
+
+    def enact_bind(self, bind_text):
+        if bind_text == "next_turn":
+            return self.tick()
+        else:
+            return False
+
+    def get_co_bind_text(self, co_index):
+        return self._control_objects[co_index].get_bind_text()
+
+    def set_ship_select(self, ship_index):
+        if ship_index < len(self._ships):
+            self._selected_ship = ship_index
+        else:
+            pass
+
+    def get_ship_select(self):
+        return self._selected_ship
+
+
+def enact_bind(bind_text):
+    return False
+
 
 def is_adjacent(point1, point2):
     if type(point1) is str:
@@ -156,13 +218,33 @@ def coord_to_grid(coord):
 
 
 def main():
-    height = 20
-    width = 20
-    size = 40
+    board_height = 20
+    board_width = 20
+    cell_size = 40
+    screen_size = (1500, (board_height + 1) * cell_size + 5)
 
-    game = Game(width, height, (size, size), size)
+    number_keys = (pygame.K_1,
+                   pygame.K_2,
+                   pygame.K_3,
+                   pygame.K_4,
+                   pygame.K_5,
+                   pygame.K_6,
+                   )
+
+    game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
     game.add_ship(Ship("Louis", 1, (3, 3), "blue"))
+    game.add_ship(Ship("Ryan", 4, (12, 12), "red"))
+    game.add_ship(Ship("Andy", 2, (6, 18), "black"))
+
+    game.add_control_objects(Button(((board_width + 1) * cell_size + 5, (board_height + 1) * cell_size - 50),
+                                    screen_size[0] - ((board_width + 1) * cell_size + 10),
+                                    50,
+                                    (255, 0, 0),
+                                    "Next Turn",
+                                    (255, 255, 255),
+                                    "next_turn",
+                                    pygame.K_SPACE))
 
     clock = pygame.time.Clock()
 
@@ -172,7 +254,7 @@ def main():
 
     # Initialise screen
     pygame.init()
-    screen = pygame.display.set_mode((1500, (height + 1) * size + 5))
+    screen = pygame.display.set_mode(screen_size)
     pygame.display.set_caption('Argo Battle')
 
     # Fill background
@@ -189,28 +271,54 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                co_index = game.get_clicked(pos)
+                if co_index is None:
+                    pass
+                else:
+                    game.set_clicked(co_index)
+                    game.enact_bind(co_index)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                game.clear_clicks()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    game.tick()
-                elif event.key == pygame.K_LCTRL:
+                print("Key press:", event.key)
+                if event.key == pygame.K_LCTRL:
                     ctrl_down = True
                 elif event.key == pygame.K_z:
                     if ctrl_down:
                         game.undo()
-                elif selected_ship >= 0:
+                elif event.key in number_keys:
+                    selected_ship = number_keys.index(event.key)
+                elif event.key in (pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT) and selected_ship >= 0:
                     if event.key == pygame.K_UP:
                         game.move_ship(selected_ship)
                     elif event.key == pygame.K_LEFT:
                         game.turn_ship(selected_ship, "LEFT")
                     elif event.key == pygame.K_RIGHT:
                         game.turn_ship(selected_ship, "RIGHT")
+                else:
+                    co_index = game.get_co_by_key(event.key)
+                    if co_index is None:
+                        pass
+                    else:
+                        game.set_clicked(co_index)
+                        bind_text = game.get_co_bind_text(co_index)
+                        if bind_text is not None:
+                            enact_bind(bind_text)
+                            game.enact_bind(game.get_co_bind_text(co_index))
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_LCTRL:
                     ctrl_down = False
+                else:
+                    co_index = game.get_co_by_key(event.key)
+                    if co_index is None:
+                        pass
+                    else:
+                        game.set_clicked(co_index, False)
 
         screen.blit(background, (0, 0))
-        game.draw_assets(screen)
-        game.draw_board(screen)
+        game.draw(screen)
         pygame.display.flip()
 
         clock.tick(30)
