@@ -2,9 +2,10 @@ from assets import *
 from control_objects import *
 
 import pygame
+import easygui
 
 pygame.init()
-
+easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
 
 class Game:
     def __init__(self, grid_width, grid_height, board_pos, cell_size):
@@ -35,7 +36,14 @@ class Game:
                 found_objects.append(o)
         return found_ships, found_objects
 
-    def add_ship(self, new_ship):
+    def add_ship(self):
+        name = easygui.enterbox("Enter Ship Name:", "New Ship", "Ship " + str(len(self._ships) + 1))
+        if name is None:
+            return
+        colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
+        if colour is None:
+            return None
+        new_ship = Ship(name, )
         self._ships.append(new_ship)
         return self._ships.index(new_ship)
 
@@ -366,7 +374,6 @@ def main():
                         game.set_clicked(co_index, False)
 
         screen.blit(background, (0, 0))
-        pygame.draw.rect(screen, (0, 0, 0,), controls_area, 1)
         game.draw(screen)
         pygame.display.flip()
 

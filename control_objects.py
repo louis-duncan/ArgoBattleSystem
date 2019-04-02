@@ -120,3 +120,29 @@ class Button(Box):
                     self._pos[1] + ((self._height / 2) - (text_size[1] / 2)))
 
         screen.blit(text_r, text_pos)
+
+
+class ShipSelector(Box):
+    def __init__(self, pos, width, height, colour, bind_text, bind_key, ship_index):
+        super().__init__(pos, width, height, colour, bind_text, bind_key)
+        self._ship_index = ship_index
+        self._history = []
+        self._active = False
+
+    def add_history(self, text):
+        self._history.append(text)
+
+    def clear_history(self):
+        self._history = []
+
+    def get_ship_index(self):
+        return self._ship_index
+
+    def set_state(self, state):
+        self._active = state
+
+    def get_state(self):
+        return self._active
+
+    def draw(self, screen, draw_colour=None):
+        super().draw(screen, draw_colour)

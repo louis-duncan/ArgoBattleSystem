@@ -6,6 +6,8 @@ pygame.font.init()
 DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 COLOURS = ["black", "white", "yellow", "green", "blue", "red"]
 SPRITE_FOLDER = "sprites"
+COLOUR_SQUARE_PATHS = [os.path.join(SPRITE_FOLDER, "square-{}.png".format(c)) for c in COLOURS]
+# DIRECTION_SQUARE_PATHS = TODO
 
 
 class SpaceObject:
