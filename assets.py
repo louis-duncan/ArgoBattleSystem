@@ -7,8 +7,11 @@ DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 COLOURS = ["black", "white", "yellow", "green", "blue", "red"]
 SPRITE_FOLDER = "sprites"
 COLOUR_SQUARE_PATHS = [os.path.join(SPRITE_FOLDER, "square-{}.png".format(c)) for c in COLOURS]
-# DIRECTION_SQUARE_PATHS = TODO
-
+directions = [["SW", "S", "SE"],
+              ["W", "random", "E"],
+              ["NW", "N", "NE"]]
+DIRECTION_SQUARE_PATHS = [[os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in d_row] for d_row in directions]
+DIRECTION_SQUARE_PATHS_IN_ORDER = [os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in DIRECTIONS]
 
 class SpaceObject:
     def __init__(self, description, direction, location, colour):

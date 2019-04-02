@@ -1,3 +1,5 @@
+import random
+
 from assets import *
 from control_objects import *
 
@@ -5,7 +7,7 @@ import pygame
 import easygui
 
 pygame.init()
-easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
+
 
 class Game:
     def __init__(self, grid_width, grid_height, board_pos, cell_size):
@@ -43,7 +45,18 @@ class Game:
         colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
         if colour is None:
             return None
-        new_ship = Ship(name, )
+        location = easygui.enterbox("Enter Location: (eg. B12)", "New Ship")
+        if location is None:
+            return None
+        location = grid_to_coord(location)
+        direction = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
+        if direction is None:
+            return None
+        if "random" in direction:
+            direction = random.randint(0, 7)
+        else:
+            direction = DIRECTION_SQUARE_PATHS_IN_ORDER.index(direction)
+        new_ship = Ship(name, direction, location, COLOURS[COLOUR_SQUARE_PATHS.index(colour)])
         self._ships.append(new_ship)
         return self._ships.index(new_ship)
 
@@ -194,6 +207,8 @@ class Game:
             self.turn_ship(self._selected_ship, "right")
         elif bind_text == "up":
             self.move_ship(self._selected_ship)
+        elif bind_text == "add_ship":
+            self.add_ship()
         else:
             return False
 
@@ -231,11 +246,9 @@ def is_adjacent(point1, point2):
 
 
 def grid_to_coord(grid_ref):
-    return ord(grid_ref[0].upper()) - 65, int(grid_ref[1] - 1)
+    return int(grid_ref[1:]) - 1, ord(grid_ref[0].upper()) - 65
 
 
-def coord_to_grid(coord):
-    return chr(coord[0] + 65) + str(coord[1] + 1)
 
 
 def main():
@@ -251,17 +264,8 @@ def main():
     screen_size = (((board_width + 1) * cell_size) + controls_area[2] + 10,
                    max([((board_height + 1) * cell_size) + 5, controls_area[3] + 10]))
 
-    number_keys = (pygame.K_1,
-                   pygame.K_2,
-                   pygame.K_3,
-                   pygame.K_4,
-                   pygame.K_5,
-                   pygame.K_6,
-                   )
-
     game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
-    game.add_ship(Ship("Louis", 1, (3, 3), "blue"))
     # game.add_ship(Ship("Ryan", 4, (12, 12), "red"))
     # game.add_ship(Ship("Andy", 2, (6, 18), "black"))
 
@@ -306,11 +310,21 @@ def main():
                           "►",
                           (0, 0, 0)
                           )
+    add_ship_button = Button((controls_area[0], controls_area[1]),
+                             left_button.get_width(),
+                             button_height,
+                             (0, 255, 0),
+                             "add_ship",
+                             pygame.K_a,
+                             "Add Ship",
+                             (255, 255, 255)
+                             )
 
     game.add_control_object(next_turn_button)
     game.add_control_object(left_button)
     game.add_control_object(up_button)
     game.add_control_object(right_button)
+    game.add_control_object(add_ship_button)
 
     clock = pygame.time.Clock()
 
