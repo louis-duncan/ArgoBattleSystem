@@ -27,6 +27,7 @@ class Game:
         self._pop_up = None
         self._controls_area = (0, 0, 100, 100)
         self._ship_selectors = []
+        self._default_button_height = 70
         self._message = "Welcome!"
         self._actions = {"add_ship": False}
         self._messages = {"add_ship": "Click a cell to add ship..."}
@@ -53,7 +54,8 @@ class Game:
         if not self._actions["add_ship"]:
             return
 
-        name = easygui.enterbox("Enter Ship Name:", "New Ship", "Ship " + str(len(self._ships) + 1))
+        name = easygui.enterbox("Adding Ship at {}\n\nEnter Ship Name:".format(coord_to_grid(location)),
+                                "New Ship", "Ship " + str(len(self._ships) + 1))
         if name is None:
             self.disarm_actions()
             return
@@ -199,7 +201,7 @@ class Game:
 
     def _draw_ship_selectors(self, screen):
         margin = 5
-        rolling_y = self._controls_area[1]
+        rolling_y = self._controls_area[1] + self._default_button_height + margin
         for ss in self._ship_selectors:
             ss.set_pos((self._controls_area[0], rolling_y))
             ss.draw(screen)
@@ -379,6 +381,14 @@ class Game:
             self._actions[a] = False
         self._message = ""
 
+    def submit_click(self, pos):
+        for a in self._actions:
+            if self._actions[a]:
+                getattr(Game, a)(self, pos)
+
+    def get_default_button_height(self):
+        return self._default_button_height
+
 
 def is_adjacent(point1, point2):
     if type(point1) is str:
@@ -392,6 +402,10 @@ def is_adjacent(point1, point2):
 
 def grid_to_coord(grid_ref):
     return int(grid_ref[1:]) - 1, ord(grid_ref[0].upper()) - 65
+
+
+def coord_to_grid(pos):
+    return chr(pos[1] + 65) + str((pos[0] + 1))
 
 
 def main():
@@ -410,21 +424,20 @@ def main():
                    max([((board_height + 1) * cell_size) + 5, game.get_controls_area()[3] + 10]))
 
     # Create Game Control Objects
-    button_height = 70
-
     next_turn_button = Button(
-        (game.get_controls_area()[0], game.get_controls_area()[1] + game.get_controls_area()[3] - button_height),
+        (game.get_controls_area()[0],
+         game.get_controls_area()[1] + game.get_controls_area()[3] - game.get_default_button_height()),
         game.get_controls_area()[2],
-        button_height,
+        game.get_default_button_height(),
         (255, 0, 0),
         "next_turn",
         pygame.K_SPACE,
         "Next Turn",
         (255, 255, 255))
     left_button = Button((game.get_controls_area()[0],
-                          next_turn_button.get_y() - (button_height + 5)),
+                          next_turn_button.get_y() - (game.get_default_button_height() + 5)),
                          round((next_turn_button.get_width() - 10) / 3),
-                         button_height,
+                         game.get_default_button_height(),
                          (150, 150, 150),
                          "left",
                          pygame.K_LEFT,
@@ -432,9 +445,9 @@ def main():
                          (0, 0, 0)
                          )
     up_button = Button((game.get_controls_area()[0] + left_button.get_width() + 5,
-                        next_turn_button.get_y() - (button_height + 5)),
+                        next_turn_button.get_y() - (game.get_default_button_height() + 5)),
                        left_button.get_width(),
-                       button_height,
+                       game.get_default_button_height(),
                        (150, 150, 150),
                        "up",
                        pygame.K_UP,
@@ -442,9 +455,9 @@ def main():
                        (0, 0, 0)
                        )
     right_button = Button((game.get_controls_area()[0] + (left_button.get_width() + 5) * 2,
-                           next_turn_button.get_y() - (button_height + 5)),
+                           next_turn_button.get_y() - (game.get_default_button_height() + 5)),
                           left_button.get_width(),
-                          button_height,
+                          game.get_default_button_height(),
                           (150, 150, 150),
                           "right",
                           pygame.K_RIGHT,
@@ -452,12 +465,10 @@ def main():
                           (0, 0, 0)
                           )
 
-    action_button_size = (game.get_controls_area()[2] - (3 * 5)) / 4
-
-    add_ship_button = Button((left_button.get_x(),
-                              left_button.get_y() - 5 - action_button_size),
-                             action_button_size,
-                             action_button_size,
+    add_ship_button = Button((game.get_controls_area()[0],
+                              game.get_controls_area()[1]),
+                             game.get_controls_area()[2],
+                             game.get_default_button_height(),
                              (0, 200, 0),
                              "arm_add_ship",
                              pygame.K_a,
@@ -512,7 +523,7 @@ def main():
                     game.ping_ss(ss_index)
                     game.enact_bind(game.get_ss_bind_text(ss_index))
                 if game.coord_at_pos(pos) is not None:
-                    game.add_ship(game.coord_at_pos(pos))
+                    game.submit_click(game.coord_at_pos(pos))
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
