@@ -23,6 +23,8 @@ class Box:
         self._bind_text = bind_text
         self._bind_key = bind_key
         self._enabled = True
+        self._ping_length = 0.05
+        self._always_active = False
 
     def get_x(self):
         return self._pos[0]
@@ -76,7 +78,7 @@ class Box:
         if not self._enabled:
             draw_colour = [c + ((255 - c) / 2) for c in draw_colour]
 
-        if time.time() - self._last_ping_time < 0.1:
+        if time.time() - self._last_ping_time < self._ping_length:
             pygame.draw.rect(screen, [int(round(i / 2)) for i in draw_colour], self.get_ping_rect())
 
         pygame.draw.rect(screen, draw_colour, self.get_rect())
@@ -101,9 +103,16 @@ class Box:
     def set_enabled(self, state):
         self._enabled = state
 
+    def make_always_active(self):
+        self._always_active = True
+
+    def get_always_active(self):
+        return self._always_active
+
 
 class Button(Box):
-    def __init__(self, pos, width, height, colour, bind_text, bind_key=None, text="", text_col=(100, 100, 100)):
+    def __init__(self, pos, width, height, colour, bind_text, bind_key=None,
+                 text="", text_col=(100, 100, 100)):
         super().__init__(pos, width, height, colour, bind_text, bind_key)
         self._text_colour = text_col
         self._text = text
@@ -130,12 +139,16 @@ class Button(Box):
 
     def draw(self, screen, draw_colour=None):
         if draw_colour is None:
-            if self._is_clicked:
+            if self._is_clicked and self._enabled:
                 draw_colour = [i / 2 for i in self._colour]
             else:
                 draw_colour = self._colour
+        if self._enabled:
+            text_colour = self._text_colour
+        else:
+            text_colour = [c + ((255 - c) / 2) for c in self._text_colour]
         super().draw(screen, draw_colour)
-        text_r = FONT.render(self._text, 1, self._text_colour)
+        text_r = FONT.render(self._text, 1, text_colour)
         text_size = text_r.get_size()
 
         text_pos = (self._pos[0] + (self._width / 2) - (text_size[0] / 2),
