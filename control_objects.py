@@ -167,12 +167,21 @@ class ToolTip:
 class ShipSelector(Box):
     def __init__(self, pos, width, height, colour, bind_text, bind_key, ship_index):
         super().__init__(pos, width, height, colour, bind_text, bind_key)
-        self._ship_index = ship_index
-        self._history = []
+        self._ship = ship
+        self._history = ["FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",  "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",]
         self._active = False
+        self._margin = 5
+        self._icon_size = 50
+        self._name_font = pygame.font.Font(pygame.font.match_font("arial"), 30, bold=1)
+        self._history_font = pygame.font.Font(pygame.font.match_font("arial"), 20)
 
     def add_history(self, text):
         self._history.append(text)
+
+    def pop_history(self, index=-1):
+        if index == -1:
+            index = len(self._history)
+        return self._history.pop(index)
 
     def clear_history(self):
         self._history = []
@@ -188,3 +197,40 @@ class ShipSelector(Box):
 
     def draw(self, screen, draw_colour=None):
         super().draw(screen, draw_colour)
+
+        icon_pos = self.get_relative_pos((self._margin, self._margin))
+        r_image = self._ship.get_sprite(self._icon_size)
+        r_image_size = r_image.get_size()
+        icon_crop_start = ((r_image_size[0] / 2) - (self._icon_size / 2),
+                           (r_image_size[1] / 2) - (self._icon_size / 2))
+        screen.blit(r_image, icon_pos, (icon_crop_start[0], icon_crop_start[1], self._icon_size, self._icon_size))
+
+        r_name = self._name_font.render(self._ship.get_description(), 1, (0, 0, 0), (255, 255, 255))
+        name_pos = self.get_relative_pos((self._icon_size + (self._margin * 2), self._margin))
+        screen.blit(r_name, name_pos)
+
+        history_width = self._width - (4 * self._margin) - self._icon_size
+
+        lines = self._flow_text(list(self._history), ", ", history_width)
+        line_pos = [name_pos[0], name_pos[1] + r_name.get_size()[1]]
+        for l in lines:
+            r_line = self._history_font.render(l, 1, (0, 0, 0), (255, 255, 255))
+            screen.blit(r_line, line_pos)
+            line_pos[1] += r_line.get_size()[1] + self._margin
+
+    def _flow_text(self, words, sep, width):
+        lines = []
+        if len(words) == 0:
+            return lines
+        new_line = words.pop(0)
+        while len(words) > 0:
+            next_word = words.pop(0)
+            with_next = new_line + sep + next_word
+            if self._history_font.size(with_next)[0] <= width:
+                new_line = with_next
+            else:
+                lines.append(new_line)
+                new_line = next_word
+        if new_line != "":
+            lines.append(new_line)
+        return lines
