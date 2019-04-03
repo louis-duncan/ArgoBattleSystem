@@ -24,6 +24,12 @@ class Game:
         self._control_objects = []
         self._selected_ship = 0
         self._coord_pos = (self._board_pos[0], self._board_pos[1] + (self._grid_height * self._cell_size) + 5)
+        self._pop_up = None
+        self._controls_area = (0, 0, 100, 100)
+        self._ship_selectors = []
+        self._message = "Welcome!"
+        self._actions = {"add_ship": False}
+        self._messages = {"add_ship": "Click a cell to add ship..."}
 
     def get_objects_in_space(self, grid_ref=None, x=None, y=None):
         if grid_ref is not None:
@@ -41,14 +47,23 @@ class Game:
         return found_ships, found_objects
 
     def add_ship(self, location):
+        if len(self._ships) == 6:
+            return None
+
+        if not self._actions["add_ship"]:
+            return
+
         name = easygui.enterbox("Enter Ship Name:", "New Ship", "Ship " + str(len(self._ships) + 1))
         if name is None:
+            self.disarm_actions()
             return
         colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
         if colour is None:
+            self.disarm_actions()
             return None
-        direction = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
+        direction = easygui.buttonbox("Choose ship direction:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
         if direction is None:
+            self.disarm_actions()
             return None
         if "random" in direction:
             direction = random.randint(0, 7)
@@ -56,6 +71,11 @@ class Game:
             direction = DIRECTION_SQUARE_PATHS_IN_ORDER.index(direction)
         new_ship = Ship(name, direction, location, COLOURS[COLOUR_SQUARE_PATHS.index(colour)])
         self._ships.append(new_ship)
+        self._add_ship_selector(self._ships.index(new_ship))
+        self._selected_ship = len(self._ships) - 1
+
+        self.disarm_actions()
+
         return self._ships.index(new_ship)
 
     def add_object(self, new_object):
@@ -147,6 +167,12 @@ class Game:
                     ((self._coord_pos[0] + (self._grid_width * self._cell_size)) - round_text_img.get_size()[0],
                      self._coord_pos[1]))
 
+        r_message = self._font.render(self._message, 1, (0, 0, 0), (255, 255, 255))
+        message_pos = [
+            self._coord_pos[0] + (((self._grid_width * self._cell_size) / 2) - (r_message.get_size()[0] / 2)),
+            self._coord_pos[1]]
+        screen.blit(r_message, message_pos)
+
     def draw_assets(self, screen):
         for o in self._objects + self._ships:
             x, y = o.get_pos()
@@ -198,7 +224,10 @@ class Game:
     def update_co_enables(self):
         state = len(self._ships) > 0
         for co in self._control_objects:
-            co.set_enabled(state)
+            if co.get_always_active():
+                pass
+            else:
+                co.set_enabled(state)
 
     def get_clicked(self, pos):
         i = len(self._control_objects) - 1
@@ -236,6 +265,11 @@ class Game:
             self.move_ship(self._selected_ship)
         elif bind_text == "add_ship":
             self.add_ship()
+        elif bind_text.startswith("arm_"):
+            self.arm_action(bind_text[4:])
+        elif bind_text.startswith("ship_"):
+            self._selected_ship = int(bind_text[5:])
+            self.update_cos()
         else:
             return False
 
@@ -277,6 +311,45 @@ def enact_bind(bind_text):
     return False
 
 
+    def get_clicked_ss(self, pos):
+        i = len(self._ship_selectors) - 1
+        found = False
+        while i >= 0 and found is False:
+            if self._ship_selectors[i].pos_in_bound(pos):
+                found = True
+            else:
+                i -= 1
+        if found:
+            return i
+        else:
+            return None
+
+    def ping_ss(self, ss_index):
+        self._ship_selectors[ss_index].ping()
+
+    def get_ss_bind_text(self, ss_index):
+        return self._ship_selectors[ss_index].get_bind_text()
+
+    def get_ss_by_key(self, key):
+        for ss in self._ship_selectors:
+            if ss.get_bind_key() == key:
+                return self._ship_selectors.index(ss)
+
+    def arm_action(self, action):
+        was_active = self._actions[action]
+        if True in self._actions.values():
+            self.disarm_actions()
+        if was_active:
+            return
+        self._actions[action] = True
+        self._message = self._messages[action]
+
+    def disarm_actions(self):
+        for a in self._actions:
+            self._actions[a] = False
+        self._message = ""
+
+
 def is_adjacent(point1, point2):
     if type(point1) is str:
         x1, y1 = grid_to_coord(point1)
@@ -309,15 +382,16 @@ def main():
     # Create Game Control Objects
     button_height = 70
 
-    next_turn_button = Button((controls_area[0], controls_area[1] + controls_area[3] - button_height),
-                              controls_area[2],
-                              button_height,
-                              (255, 0, 0),
-                              "next_turn",
-                              pygame.K_SPACE,
-                              "Next Turn",
-                              (255, 255, 255))
-    left_button = Button((controls_area[0],
+    next_turn_button = Button(
+        (game.get_controls_area()[0], game.get_controls_area()[1] + game.get_controls_area()[3] - button_height),
+        game.get_controls_area()[2],
+        button_height,
+        (255, 0, 0),
+        "next_turn",
+        pygame.K_SPACE,
+        "Next Turn",
+        (255, 255, 255))
+    left_button = Button((game.get_controls_area()[0],
                           next_turn_button.get_y() - (button_height + 5)),
                          round((next_turn_button.get_width() - 10) / 3),
                          button_height,
@@ -344,15 +418,29 @@ def main():
                           (150, 150, 150),
                           "right",
                           pygame.K_RIGHT,
-                          "►",
+                          " ►",
                           (0, 0, 0)
                           )
+
+    action_button_size = (game.get_controls_area()[2] - (3 * 5)) / 4
+
+    add_ship_button = Button((left_button.get_x(),
+                              left_button.get_y() - 5 - action_button_size),
+                             action_button_size,
+                             action_button_size,
+                             (0, 200, 0),
+                             "arm_add_ship",
+                             pygame.K_a,
+                             "Add Ship",
+                             (0, 0, 0)
+                             )
+    add_ship_button.make_always_active()
 
     game.add_control_object(next_turn_button)
     game.add_control_object(left_button)
     game.add_control_object(up_button)
     game.add_control_object(right_button)
-    #game.add_control_object(add_ship_button)
+    game.add_control_object(add_ship_button)
 
     clock = pygame.time.Clock()
 
@@ -389,7 +477,10 @@ def main():
                 if co_index is not None:
                     game.ping_co(co_index)
                     game.enact_bind(game.get_co_bind_text(co_index))
-                elif game.coord_at_pos(pos) is not None:
+                if ss_index is not None:
+                    game.ping_ss(ss_index)
+                    game.enact_bind(game.get_ss_bind_text(ss_index))
+                if game.coord_at_pos(pos) is not None:
                     game.add_ship(game.coord_at_pos(pos))
 
             elif event.type == pygame.KEYDOWN:
