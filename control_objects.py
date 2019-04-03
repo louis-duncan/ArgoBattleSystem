@@ -4,6 +4,14 @@ import time
 FONT_SIZE = 30
 FONT = pygame.font.Font(pygame.font.match_font("arial"), FONT_SIZE)
 
+NUMBER_KEYS = (pygame.K_1,
+               pygame.K_2,
+               pygame.K_3,
+               pygame.K_4,
+               pygame.K_5,
+               pygame.K_6
+               )
+
 
 class Box:
     def __init__(self, pos, width, height, colour, bind_text="", bind_key=None):
@@ -32,6 +40,9 @@ class Box:
 
     def get_pos(self):
         return self._pos
+
+    def get_relative_pos(self, pos):
+        return (self._pos[0] + pos[0]), (self._pos[1] + pos[1])
 
     def set_pos(self, pos):
         self._pos = pos
@@ -73,7 +84,8 @@ class Box:
         pygame.draw.rect(screen, draw_colour, self.get_rect())
 
     def pos_in_bound(self, pos):
-        result = (self._pos[0] < pos[0] < self._pos[0] + self._width) and (self._pos[1] < pos[1] < self._pos[1] + self._height)
+        result = (self._pos[0] < pos[0] < self._pos[0] + self._width) and (
+                    self._pos[1] < pos[1] < self._pos[1] + self._height)
         return result
 
     def ping(self):
@@ -147,7 +159,7 @@ class Button(Box):
 
 class ToolTip:
     def __init__(self):
-        self._sprite_size = 30
+        self._sprite_size = 50
         self._boarder_thickness = 2
         self._margin = 5
 
@@ -178,7 +190,7 @@ class ToolTip:
 
 
 class ShipSelector(Box):
-    def __init__(self, pos, width, height, colour, bind_text, bind_key, ship_index):
+    def __init__(self, pos, width, height, colour, bind_text, bind_key, ship):
         super().__init__(pos, width, height, colour, bind_text, bind_key)
         self._ship = ship
         self._history = ["FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",  "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",]
@@ -199,17 +211,27 @@ class ShipSelector(Box):
     def clear_history(self):
         self._history = []
 
-    def get_ship_index(self):
-        return self._ship_index
+    def get_ship(self):
+        return self._ship
 
-    def set_state(self, state):
-        self._active = state
+    def set_selected(self, state):
+        self._active = bool(state)
 
-    def get_state(self):
+    def get_selected(self):
         return self._active
 
     def draw(self, screen, draw_colour=None):
         super().draw(screen, draw_colour)
+        if self._active:
+            border_col = (0, 0, 0)
+            border_thickness = 3
+        else:
+            border_col = (100, 100, 100)
+            border_thickness = 1
+        pygame.draw.rect(screen,
+                         border_col,
+                         (self._pos[0], self._pos[1], self._width, self._height),
+                         border_thickness)
 
         icon_pos = self.get_relative_pos((self._margin, self._margin))
         r_image = self._ship.get_sprite(self._icon_size)

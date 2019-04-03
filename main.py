@@ -22,7 +22,7 @@ class Game:
         self._font = pygame.font.Font(pygame.font.match_font("arial"), 30, bold=1)
         self._history = []
         self._control_objects = []
-        self._selected_ship = 0
+        self._selected_ship = -1
         self._coord_pos = (self._board_pos[0], self._board_pos[1] + (self._grid_height * self._cell_size) + 5)
         self._pop_up = None
         self._controls_area = (0, 0, 100, 100)
@@ -70,6 +70,7 @@ class Game:
         else:
             direction = DIRECTION_SQUARE_PATHS_IN_ORDER.index(direction)
         new_ship = Ship(name, direction, location, COLOURS[COLOUR_SQUARE_PATHS.index(colour)])
+
         self._ships.append(new_ship)
         self._add_ship_selector(self._ships.index(new_ship))
         self._selected_ship = len(self._ships) - 1
@@ -194,6 +195,16 @@ class Game:
         for o in self._control_objects:
             o.draw(screen)
 
+        self._draw_ship_selectors(screen)
+
+    def _draw_ship_selectors(self, screen):
+        margin = 5
+        rolling_y = self._controls_area[1]
+        for ss in self._ship_selectors:
+            ss.set_pos((self._controls_area[0], rolling_y))
+            ss.draw(screen)
+            rolling_y += ss.get_height() + margin
+
     def _add_history(self, history_item):
         self._history.append(history_item)
 
@@ -215,13 +226,14 @@ class Game:
                 pass
 
     def draw(self, screen):
-        self.update_co_enables()
+        self.update_cos()
+        self.update_sss()
         self.draw_assets(screen)
         self.draw_control_objects(screen)
         self.draw_board(screen)
         self.draw_tool_tip(screen)
 
-    def update_co_enables(self):
+    def update_cos(self):
         state = len(self._ships) > 0
         for co in self._control_objects:
             if co.get_always_active():
@@ -229,7 +241,13 @@ class Game:
             else:
                 co.set_enabled(state)
 
-    def get_clicked(self, pos):
+    def update_sss(self):
+        for i in range(len(self._ship_selectors)):
+            self._ship_selectors[i].set_selected(False)
+        if len(self._ships) > 0:
+            self._ship_selectors[self._selected_ship].set_selected(True)
+
+    def get_clicked_co(self, pos):
         i = len(self._control_objects) - 1
         found = False
         while i >= 0 and found is False:
@@ -255,7 +273,9 @@ class Game:
                 return self._control_objects.index(co)
 
     def enact_bind(self, bind_text):
-        if bind_text == "next_turn":
+        if bind_text is None:
+            return
+        elif bind_text == "next_turn":
             return self.tick()
         elif bind_text == "left":
             self.turn_ship(self._selected_ship, "left")
@@ -286,7 +306,7 @@ class Game:
         return self._selected_ship
 
     def get_co_state(self, co_index):
-        return self._control_objects[co_index].get_state()
+        return self._control_objects[co_index].get_selected()
 
     def ping_co(self, co_index):
         self._control_objects[co_index].ping()
@@ -306,10 +326,20 @@ class Game:
         ships, objects = self.get_objects_in_space(x=self.coord_at_pos(pos)[0], y=self.coord_at_pos(pos)[1])
         self._tool_tip.draw(screen, ships + objects)
 
+    def set_controls_area(self, rect):
+        self._controls_area = rect
 
-def enact_bind(bind_text):
-    return False
+    def get_controls_area(self):
+        return self._controls_area
 
+    def _add_ship_selector(self, ship_index):
+        self._ship_selectors.append(ShipSelector((0, 0),
+                                                 self._controls_area[2],
+                                                 100,
+                                                 (255, 255, 255),
+                                                 bind_text="ship_{}".format(ship_index),
+                                                 bind_key=NUMBER_KEYS[ship_index],
+                                                 ship=self._ships[ship_index]))
 
     def get_clicked_ss(self, pos):
         i = len(self._ship_selectors) - 1
@@ -371,13 +401,13 @@ def main():
 
     game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
-    controls_area = ((board_width + 1) * cell_size + 5,  # x
-                     5,  # y
-                     600,  # width
-                     ((board_height + 1) * cell_size) + 35)  # height
+    game.set_controls_area(((board_width + 1) * cell_size + 5,  # x
+                            5,  # y
+                            600,  # width
+                            ((board_height + 1) * cell_size) + 35))  # height
 
-    screen_size = (((board_width + 1) * cell_size) + controls_area[2] + 10,
-                   max([((board_height + 1) * cell_size) + 5, controls_area[3] + 10]))
+    screen_size = (((board_width + 1) * cell_size) + game.get_controls_area()[2] + 10,
+                   max([((board_height + 1) * cell_size) + 5, game.get_controls_area()[3] + 10]))
 
     # Create Game Control Objects
     button_height = 70
@@ -401,7 +431,7 @@ def main():
                          "◄",
                          (0, 0, 0)
                          )
-    up_button = Button((controls_area[0] + left_button.get_width() + 5,
+    up_button = Button((game.get_controls_area()[0] + left_button.get_width() + 5,
                         next_turn_button.get_y() - (button_height + 5)),
                        left_button.get_width(),
                        button_height,
@@ -411,7 +441,7 @@ def main():
                        " ▲",
                        (0, 0, 0)
                        )
-    right_button = Button((controls_area[0] + (left_button.get_width() + 5) * 2,
+    right_button = Button((game.get_controls_area()[0] + (left_button.get_width() + 5) * 2,
                            next_turn_button.get_y() - (button_height + 5)),
                           left_button.get_width(),
                           button_height,
@@ -467,12 +497,13 @@ def main():
                 return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                co_index = game.get_clicked(pos)
+                co_index = game.get_clicked_co(pos)
                 if co_index is not None:
                     game.set_clicked(co_index)
             elif event.type == pygame.MOUSEBUTTONUP:
                 pos = pygame.mouse.get_pos()
-                co_index = game.get_clicked(pos)
+                co_index = game.get_clicked_co(pos)
+                ss_index = game.get_clicked_ss(pos)
                 game.clear_clicks()
                 if co_index is not None:
                     game.ping_co(co_index)
@@ -498,7 +529,17 @@ def main():
                         game.ping_co(co_index)
                         bind_text = game.get_co_bind_text(co_index)
                         if bind_text is not None:
-                            game.enact_bind(game.get_co_bind_text(co_index))
+                            game.enact_bind(bind_text)
+
+                    ss_index = game.get_ss_by_key(event.key)
+                    if ss_index is None:
+                        pass
+                    else:
+                        game.ping_ss(ss_index)
+                        bind_text = game.get_ss_bind_text(ss_index)
+                        if bind_text is not None:
+                            game.enact_bind(bind_text)
+
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_LCTRL:
                     ctrl_down = False
