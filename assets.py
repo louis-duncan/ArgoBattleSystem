@@ -22,7 +22,7 @@ class SpaceObject:
         self._location = list(location)
         self._ttl = -1
         self._colour = colour
-        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
+        self._sprite = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
 
     def get_pos(self):
         return self._location
@@ -69,8 +69,8 @@ class SpaceObject:
         if self._ttl > 0:
             self._ttl -= 1
 
-    def get_image(self, cell_size):
-        image = pygame.transform.scale(self._image, (cell_size, cell_size))
+    def get_sprite(self, cell_size):
+        image = pygame.transform.scale(self._sprite, (cell_size, cell_size))
         image = pygame.transform.rotate(image, self._direction * -45)
         return image
 
@@ -78,14 +78,14 @@ class SpaceObject:
 class TravelTrail(SpaceObject):
     def __init__(self, description, direction, location, colour):
         super().__init__(description, direction, location, colour)
-        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "trail-{}.png".format(self._colour)))
+        self._sprite = pygame.image.load(os.path.join(SPRITE_FOLDER, "trail-{}.png".format(self._colour)))
         self._ttl = 4
 
 
 class Ship(SpaceObject):
     def __init__(self, description, direction, location, colour):
         super().__init__(description, direction, location, colour)
-        self._image = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
+        self._sprite = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
         self._turn_history = []
 
 

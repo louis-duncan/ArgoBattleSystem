@@ -11,14 +11,14 @@ pygame.init()
 
 class Game:
     def __init__(self, grid_width, grid_height, board_pos, cell_size):
-        self._tool_tip = None
+        self._tool_tip = ToolTip()
         self._ships = []
         self._objects = []
         self._grid_width = grid_width
         self._grid_height = grid_height
         self._board_pos = board_pos
         self._cell_size = cell_size
-        self._round = 0
+        self._round = 1
         self._font = pygame.font.Font(pygame.font.match_font("arial"), 30, bold=1)
         self._history = []
         self._control_objects = []
@@ -40,17 +40,13 @@ class Game:
                 found_objects.append(o)
         return found_ships, found_objects
 
-    def add_ship(self):
+    def add_ship(self, location):
         name = easygui.enterbox("Enter Ship Name:", "New Ship", "Ship " + str(len(self._ships) + 1))
         if name is None:
             return
         colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
         if colour is None:
             return None
-        location = easygui.enterbox("Enter Location: (eg. B12)", "New Ship")
-        if location is None:
-            return None
-        location = grid_to_coord(location)
         direction = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
         if direction is None:
             return None
@@ -137,9 +133,10 @@ class Game:
             x = self._board_pos[0] - (self._cell_size / 2) - (width / 2)
             y = self._board_pos[1] + (y * self._cell_size) + (self._cell_size / 2) - (height / 2)
             screen.blit(char, (x, y))
-        mouse_over = self._coord_at_pos(pygame.mouse.get_pos())
+
+        mouse_over = self.coord_at_pos(pygame.mouse.get_pos())
         if mouse_over is not None:
-            coord_text = "({}{})".format(chr(mouse_over[1] + 64), mouse_over[0])
+            coord_text = "({}{})".format(chr(mouse_over[1] + 65), mouse_over[0] + 1)
         else:
             coord_text = "(---)"
         coord_text_img = self._font.render(coord_text, 1, (0, 0, 0), (255, 255, 255))
@@ -153,12 +150,15 @@ class Game:
     def draw_assets(self, screen):
         for o in self._objects + self._ships:
             x, y = o.get_pos()
-            image = o.get_image(round(self._cell_size * 0.75))
-            image_size = image.get_rect().size
+            image_size = self._cell_size * .9
+            image = o.get_sprite(round(image_size))
+            r_image_size = image.get_size()
             scaled_pos = (
-                round((x * self._cell_size) + self._board_pos[0] + (self._cell_size / 2) - (image_size[0] / 2)),
-                round((y * self._cell_size) + self._board_pos[1] + (self._cell_size / 2) - (image_size[1] / 2)))
-            screen.blit(image, scaled_pos)
+                round((x * self._cell_size) + self._board_pos[0]) + ((self._cell_size / 2) - (image_size / 2)),
+                round((y * self._cell_size) + self._board_pos[1]) + ((self._cell_size / 2) - (image_size / 2)))
+            crop_pos = ((r_image_size[0] / 2) - (image_size / 2),
+                        (r_image_size[1] / 2) - (image_size / 2))
+            screen.blit(image, scaled_pos, (crop_pos[0], crop_pos[1], image_size, image_size))
 
     def add_control_object(self, control_obj):
         self._control_objects.append(control_obj)
@@ -193,8 +193,7 @@ class Game:
         self.draw_assets(screen)
         self.draw_control_objects(screen)
         self.draw_board(screen)
-        if self._tool_tip is not None and self._coord_at_pos(pygame.mouse.get_pos()) is not None:
-            self._tool_tip.draw()
+        self.draw_tool_tip(screen)
 
     def update_co_enables(self):
         state = len(self._ships) > 0
@@ -258,13 +257,20 @@ class Game:
     def ping_co(self, co_index):
         self._control_objects[co_index].ping()
 
-    def _coord_at_pos(self, pos):
-        x, y = (((pos[0] - self._board_pos[0]) // self._cell_size) + 1,
-                ((pos[1] - self._board_pos[1]) // self._cell_size) + 1)
-        if 1 <= x <= self._grid_width and 1 <= y <= self._grid_height:
+    def coord_at_pos(self, pos):
+        x, y = (((pos[0] - self._board_pos[0]) // self._cell_size),
+                ((pos[1] - self._board_pos[1]) // self._cell_size))
+        if 0 <= x < self._grid_width and 0 <= y < self._grid_height:
             return x, y
         else:
             return None
+
+    def draw_tool_tip(self, screen):
+        if self._tool_tip is None or self.coord_at_pos(pygame.mouse.get_pos()) is None:
+            return
+        pos = pygame.mouse.get_pos()
+        ships, objects = self.get_objects_in_space(x=self.coord_at_pos(pos)[0], y=self.coord_at_pos(pos)[1])
+        self._tool_tip.draw(screen, ships + objects)
 
 
 def enact_bind(bind_text):
@@ -299,9 +305,6 @@ def main():
 
     screen_size = (((board_width + 1) * cell_size) + controls_area[2] + 10,
                    max([((board_height + 1) * cell_size) + 5, controls_area[3] + 10]))
-
-    # game.add_ship(Ship("Ryan", 4, (12, 12), "red"))
-    # game.add_ship(Ship("Andy", 2, (6, 18), "black"))
 
     # Create Game Control Objects
     button_height = 70
@@ -382,10 +385,13 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 pos = pygame.mouse.get_pos()
                 co_index = game.get_clicked(pos)
+                game.clear_clicks()
                 if co_index is not None:
                     game.ping_co(co_index)
                     game.enact_bind(game.get_co_bind_text(co_index))
-                game.clear_clicks()
+                elif game.coord_at_pos(pos) is not None:
+                    game.add_ship(game.coord_at_pos(pos))
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
                     ctrl_down = True

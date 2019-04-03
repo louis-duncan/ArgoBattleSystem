@@ -134,15 +134,34 @@ class Button(Box):
 
 class ToolTip:
     def __init__(self):
-        self._pos = [0, 0]
-        self._sprites = []
+        self._sprite_size = 30
+        self._boarder_thickness = 2
+        self._margin = 5
 
-    def set_pos(self, pos):
-        self._pos = pos
+    def draw(self, screen, objects=None):
+        pos = pygame.mouse.get_pos()
+        if objects is None or len(objects) == 0:
+            return
 
-    def draw(self, screen, sprites=None):
-        rect = (self._pos[0], self._pos[1], ) # Todo
-
+        width = (self._sprite_size * len(objects)) + (2 * self._margin)
+        height = self._sprite_size + (2 * self._margin)
+        rect = (pos[0], pos[1], width, height)
+        pygame.draw.rect(screen,
+                         (255, 255, 255),
+                         rect)
+        for i, o in enumerate(objects):
+            s = o.get_sprite(self._sprite_size)
+            s_size = s.get_size()
+            range_start_pos = ((s_size[0] / 2) - (self._sprite_size / 2),
+                               (s_size[1] / 2) - (self._sprite_size / 2))
+            screen.blit(s,
+                        (pos[0] + self._margin + (i * self._sprite_size), pos[1] + self._margin),
+                        (range_start_pos[0], range_start_pos[1],
+                         self._sprite_size, self._sprite_size))
+        pygame.draw.rect(screen,
+                         (0, 0, 0),
+                         rect,
+                         self._boarder_thickness)
 
 
 class ShipSelector(Box):
