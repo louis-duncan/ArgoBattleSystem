@@ -13,6 +13,7 @@ directions = [["SW", "S", "SE"],
 DIRECTION_SQUARE_PATHS = [[os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in d_row] for d_row in directions]
 DIRECTION_SQUARE_PATHS_IN_ORDER = [os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in DIRECTIONS]
 
+
 class SpaceObject:
     def __init__(self, description, direction, location, colour):
         assert colour in COLOURS

@@ -11,6 +11,7 @@ pygame.init()
 
 class Game:
     def __init__(self, grid_width, grid_height, board_pos, cell_size):
+        self._tool_tip = None
         self._ships = []
         self._objects = []
         self._grid_width = grid_width
@@ -18,10 +19,11 @@ class Game:
         self._board_pos = board_pos
         self._cell_size = cell_size
         self._round = 0
-        self._font = pygame.font.Font(pygame.font.match_font("arial"), 20, bold=True)
+        self._font = pygame.font.Font(pygame.font.match_font("arial"), 30, bold=1)
         self._history = []
         self._control_objects = []
         self._selected_ship = 0
+        self._coord_pos = (self._board_pos[0], self._board_pos[1] + (self._grid_height * self._cell_size) + 5)
 
     def get_objects_in_space(self, grid_ref=None, x=None, y=None):
         if grid_ref is not None:
@@ -71,6 +73,8 @@ class Game:
         p = self._objects.pop(index)
 
     def move_ship(self, index):
+        if self._selected_ship >= len(self._ships):
+            return None
         trail_index = self.add_object(TravelTrail("Created By {}".format(self._ships[index].get_description()),
                                                   self._ships[index].get_direction(),
                                                   self._ships[index].get_pos(),
@@ -80,6 +84,8 @@ class Game:
         self._add_history(("move", index))
 
     def turn_ship(self, index, direction, history=True):
+        if self._selected_ship >= len(self._ships):
+            return None
         self._ships[index].turn(direction)
         if history:
             self._history.append(("turn", index, direction))
@@ -100,6 +106,8 @@ class Game:
         return self._round
 
     def tick(self):
+        if len(self._history) == 0:
+            return
         self._decrement_ttls()
         self._purge_objects()
         self._round += 1
@@ -129,6 +137,18 @@ class Game:
             x = self._board_pos[0] - (self._cell_size / 2) - (width / 2)
             y = self._board_pos[1] + (y * self._cell_size) + (self._cell_size / 2) - (height / 2)
             screen.blit(char, (x, y))
+        mouse_over = self._coord_at_pos(pygame.mouse.get_pos())
+        if mouse_over is not None:
+            coord_text = "({}{})".format(chr(mouse_over[1] + 64), mouse_over[0])
+        else:
+            coord_text = "(---)"
+        coord_text_img = self._font.render(coord_text, 1, (0, 0, 0), (255, 255, 255))
+        screen.blit(coord_text_img, self._coord_pos)
+
+        round_text_img = self._font.render("Round: {}".format(self._round), 1, (0, 0, 0), (255, 255, 255))
+        screen.blit(round_text_img,
+                    ((self._coord_pos[0] + (self._grid_width * self._cell_size)) - round_text_img.get_size()[0],
+                     self._coord_pos[1]))
 
     def draw_assets(self, screen):
         for o in self._objects + self._ships:
@@ -169,9 +189,17 @@ class Game:
                 pass
 
     def draw(self, screen):
+        self.update_co_enables()
         self.draw_assets(screen)
         self.draw_control_objects(screen)
         self.draw_board(screen)
+        if self._tool_tip is not None and self._coord_at_pos(pygame.mouse.get_pos()) is not None:
+            self._tool_tip.draw()
+
+    def update_co_enables(self):
+        state = len(self._ships) > 0
+        for co in self._control_objects:
+            co.set_enabled(state)
 
     def get_clicked(self, pos):
         i = len(self._control_objects) - 1
@@ -230,6 +258,14 @@ class Game:
     def ping_co(self, co_index):
         self._control_objects[co_index].ping()
 
+    def _coord_at_pos(self, pos):
+        x, y = (((pos[0] - self._board_pos[0]) // self._cell_size) + 1,
+                ((pos[1] - self._board_pos[1]) // self._cell_size) + 1)
+        if 1 <= x <= self._grid_width and 1 <= y <= self._grid_height:
+            return x, y
+        else:
+            return None
+
 
 def enact_bind(bind_text):
     return False
@@ -249,22 +285,20 @@ def grid_to_coord(grid_ref):
     return int(grid_ref[1:]) - 1, ord(grid_ref[0].upper()) - 65
 
 
-
-
 def main():
-    board_height = 26
-    board_width = 26
-    cell_size = 35
+    board_height = 20
+    board_width = 20
+    cell_size = 45
+
+    game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
     controls_area = ((board_width + 1) * cell_size + 5,  # x
                      5,  # y
                      600,  # width
-                     ((board_height + 1) * cell_size) - 5)  # height
+                     ((board_height + 1) * cell_size) + 35)  # height
 
     screen_size = (((board_width + 1) * cell_size) + controls_area[2] + 10,
                    max([((board_height + 1) * cell_size) + 5, controls_area[3] + 10]))
-
-    game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
     # game.add_ship(Ship("Ryan", 4, (12, 12), "red"))
     # game.add_ship(Ship("Andy", 2, (6, 18), "black"))
@@ -310,21 +344,12 @@ def main():
                           "►",
                           (0, 0, 0)
                           )
-    add_ship_button = Button((controls_area[0], controls_area[1]),
-                             left_button.get_width(),
-                             button_height,
-                             (0, 255, 0),
-                             "add_ship",
-                             pygame.K_a,
-                             "Add Ship",
-                             (255, 255, 255)
-                             )
 
     game.add_control_object(next_turn_button)
     game.add_control_object(left_button)
     game.add_control_object(up_button)
     game.add_control_object(right_button)
-    game.add_control_object(add_ship_button)
+    #game.add_control_object(add_ship_button)
 
     clock = pygame.time.Clock()
 

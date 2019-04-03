@@ -14,6 +14,7 @@ class Box:
         self._last_ping_time = 0
         self._bind_text = bind_text
         self._bind_key = bind_key
+        self._enabled = True
 
     def get_x(self):
         return self._pos[0]
@@ -61,6 +62,9 @@ class Box:
         if draw_colour is None:
             draw_colour = self._colour
 
+        if not self._enabled:
+            draw_colour = [c + ((255 - c) / 2) for c in draw_colour]
+
         if time.time() - self._last_ping_time < 0.1:
             pygame.draw.rect(screen, [int(round(i / 2)) for i in draw_colour], self.get_ping_rect())
 
@@ -71,13 +75,19 @@ class Box:
         return result
 
     def ping(self):
-        self._last_ping_time = time.time()
+        if self._enabled:
+            self._last_ping_time = time.time()
 
     def get_bind_text(self):
-        return self._bind_text
+        if self._enabled:
+            return self._bind_text
 
     def get_bind_key(self):
-        return self._bind_key
+        if self._enabled:
+            return self._bind_key
+
+    def set_enabled(self, state):
+        self._enabled = state
 
 
 class Button(Box):
@@ -113,13 +123,26 @@ class Button(Box):
             else:
                 draw_colour = self._colour
         super().draw(screen, draw_colour)
-        text_r = FONT.render(self._text, 1, self._text_colour, draw_colour)
+        text_r = FONT.render(self._text, 1, self._text_colour)
         text_size = text_r.get_size()
 
         text_pos = (self._pos[0] + (self._width / 2) - (text_size[0] / 2),
                     self._pos[1] + ((self._height / 2) - (text_size[1] / 2)))
 
         screen.blit(text_r, text_pos)
+
+
+class ToolTip:
+    def __init__(self):
+        self._pos = [0, 0]
+        self._sprites = []
+
+    def set_pos(self, pos):
+        self._pos = pos
+
+    def draw(self, screen, sprites=None):
+        rect = (self._pos[0], self._pos[1], ) # Todo
+
 
 
 class ShipSelector(Box):
