@@ -27,7 +27,7 @@ class Game:
         self._pop_up = None
         self._controls_area = (0, 0, 100, 100)
         self._ship_selectors = []
-        self._default_button_height = 70
+        self._default_button_height = 60
         self._message = "Welcome!"
         self._actions = {"add_ship": False}
         self._messages = {"add_ship": "Click a cell to add ship..."}
@@ -133,7 +133,7 @@ class Game:
         self._purge_objects()
         self._round += 1
         self._history = []
-        for s in self._ships:
+        for s in self._ship_selectors:
             s.clear_history()
 
     def draw_board(self, screen):
@@ -203,7 +203,7 @@ class Game:
 
     def draw_ship_selectors(self, screen):
         margin = 5
-        rolling_y = self._controls_area[1] + (self._default_button_height * .5) + margin
+        rolling_y = self._controls_area[1] + (self._default_button_height * .75) + margin
         for ss in self._ship_selectors:
             ss.set_pos((self._controls_area[0], rolling_y))
             ss.draw(screen)
@@ -474,7 +474,7 @@ def main():
     add_ship_button = Button((game.get_controls_area()[0],
                               game.get_controls_area()[1]),
                              game.get_controls_area()[2],
-                             game.get_default_button_height() * 0.5,
+                             game.get_default_button_height() * 0.75,
                              (0, 200, 0),
                              "arm_add_ship",
                              pygame.K_a,
