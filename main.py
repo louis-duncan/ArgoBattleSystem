@@ -101,6 +101,7 @@ class Game:
         self._ships[index].move()
         self._add_history(("create", trail_index))
         self._add_history(("move", index))
+        self._ship_selectors[index].add_history("Forward")
 
     def turn_ship(self, index, direction, history=True):
         if self._selected_ship >= len(self._ships):
@@ -108,6 +109,7 @@ class Game:
         self._ships[index].turn(direction)
         if history:
             self._history.append(("turn", index, direction))
+            self._ship_selectors[index].add_history(direction.capitalize())
 
     def _purge_objects(self):
         i = 0
@@ -131,6 +133,8 @@ class Game:
         self._purge_objects()
         self._round += 1
         self._history = []
+        for s in self._ships:
+            s.clear_history()
 
     def draw_board(self, screen):
         for y in range(self._grid_height + 1):
@@ -197,11 +201,9 @@ class Game:
         for o in self._control_objects:
             o.draw(screen)
 
-        self._draw_ship_selectors(screen)
-
-    def _draw_ship_selectors(self, screen):
+    def draw_ship_selectors(self, screen):
         margin = 5
-        rolling_y = self._controls_area[1] + self._default_button_height + margin
+        rolling_y = self._controls_area[1] + (self._default_button_height * .5) + margin
         for ss in self._ship_selectors:
             ss.set_pos((self._controls_area[0], rolling_y))
             ss.draw(screen)
@@ -217,13 +219,16 @@ class Game:
         if history_item[0] == "move":
             self._ships[history_item[1]].move(-1)
             self.undo()
+            self._ship_selectors[history_item[1]].pop_history()
         elif history_item[0] == "create":
             self.remove_object(history_item[1])
         elif history_item[0] == "turn":
             if history_item[2] == "left":
                 self.turn_ship(history_item[1], "right", False)
+                self._ship_selectors[history_item[1]].pop_history()
             elif history_item[2] == "right":
                 self.turn_ship(history_item[1], "left", False)
+                self._ship_selectors[history_item[1]].pop_history()
             else:
                 pass
 
@@ -232,6 +237,7 @@ class Game:
         self.update_sss()
         self.draw_assets(screen)
         self.draw_control_objects(screen)
+        self.draw_ship_selectors(screen)
         self.draw_board(screen)
         self.draw_tool_tip(screen)
 
@@ -468,7 +474,7 @@ def main():
     add_ship_button = Button((game.get_controls_area()[0],
                               game.get_controls_area()[1]),
                              game.get_controls_area()[2],
-                             game.get_default_button_height(),
+                             game.get_default_button_height() * 0.5,
                              (0, 200, 0),
                              "arm_add_ship",
                              pygame.K_a,

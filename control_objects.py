@@ -193,7 +193,7 @@ class ShipSelector(Box):
     def __init__(self, pos, width, height, colour, bind_text, bind_key, ship):
         super().__init__(pos, width, height, colour, bind_text, bind_key)
         self._ship = ship
-        self._history = ["FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",  "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW", "FW",]
+        self._history = []
         self._active = False
         self._margin = 5
         self._icon_size = 50
@@ -205,11 +205,11 @@ class ShipSelector(Box):
 
     def pop_history(self, index=-1):
         if index == -1:
-            index = len(self._history)
+            index = len(self._history) - 1
         return self._history.pop(index)
 
     def clear_history(self):
-        self._history = []
+        self._history.clear()
 
     def get_ship(self):
         return self._ship
