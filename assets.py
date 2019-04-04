@@ -93,13 +93,12 @@ class Decoy(SpaceObject):
     pass
 
 
-class Sweep():
-    def __init__(self, start_pos, end_pos, colour, ttl):
-        super().__init__(description, direction, location, colour)
-        self._width = width
-
-    def draw(self):
-        pass
+class PingBox:
+    def __init__(self, start_pos, end_pos, colour, ttl=1):
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.colour = colour
+        self.ttl = ttl
 
     def get_ttl(self):
         return self._ttl

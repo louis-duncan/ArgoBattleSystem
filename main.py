@@ -14,6 +14,7 @@ class Game:
         self._tool_tip = ToolTip()
         self._ships = []
         self._objects = []
+        self._ping_boxes = []
         self._grid_width = grid_width
         self._grid_height = grid_height
         self._board_pos = board_pos
@@ -49,6 +50,7 @@ class Game:
 
     def add_ship(self, location):
         if len(self._ships) == 6:
+            self.disarm_actions()
             return None
 
         if not self._actions["add_ship"]:
@@ -118,10 +120,18 @@ class Game:
                 self._objects.remove(self._objects[i])
             else:
                 i += 1
+        i = 0
+        while i < len(self._ping_boxes):
+            if self._ping_boxes[i].get_ttl() == 0:
+                self._ping_boxes.remove(self._ping_boxes[i])
+            else:
+                i += 1
 
     def _decrement_ttls(self):
         for o in self._objects:
             o.decrement_ttl()
+        for p in self._ping_boxes:
+            p.decrement_ttl()
 
     def get_round(self):
         return self._round
@@ -193,6 +203,10 @@ class Game:
                         (r_image_size[1] / 2) - (image_size / 2))
             screen.blit(image, scaled_pos, (crop_pos[0], crop_pos[1], image_size, image_size))
 
+    def draw_pings(self, screen):
+        for pb in self._ping_boxes:
+            pass
+
     def add_control_object(self, control_obj):
         self._control_objects.append(control_obj)
         return self._control_objects.index(control_obj)
@@ -240,6 +254,11 @@ class Game:
         self.draw_ship_selectors(screen)
         self.draw_board(screen)
         self.draw_tool_tip(screen)
+
+    def add_ping_box(self, start_grid, end_grid):
+        start_coord = [(start_grid[c] * self._cell_size) + self._board_pos[c] for c in range(len(start_grid))]
+        end_coord = [(end_grid[c] * self._cell_size) + self._board_pos[c] for c in range(len(end_grid))]
+        self._ping_boxes.append(PingBox(start_coord, end_coord, self._ships[self._selected_ship].get_colour()))
 
     def update_cos(self):
         state = len(self._ships) > 0
