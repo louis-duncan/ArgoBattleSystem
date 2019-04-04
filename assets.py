@@ -91,3 +91,19 @@ class Ship(SpaceObject):
 
 class Decoy(SpaceObject):
     pass
+
+
+class Sweep():
+    def __init__(self, start_pos, end_pos, colour, ttl):
+        super().__init__(description, direction, location, colour)
+        self._width = width
+
+    def draw(self):
+        pass
+
+    def get_ttl(self):
+        return self._ttl
+
+    def decrement_ttl(self):
+        if self._ttl > 0:
+            self._ttl -= 1
