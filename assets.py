@@ -12,7 +12,13 @@ directions = [["SW", "S", "SE"],
               ["NW", "N", "NE"]]
 DIRECTION_SQUARE_PATHS = [[os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in d_row] for d_row in directions]
 DIRECTION_SQUARE_PATHS_IN_ORDER = [os.path.join(SPRITE_FOLDER, "arrow-{}.png".format(d)) for d in DIRECTIONS]
-
+RED = (255, 0, 0)
+GREEN = (0, 200, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GREY = (150, 150, 150)
 
 class SpaceObject:
     def __init__(self, description, direction, location, colour):
@@ -95,10 +101,10 @@ class Decoy(SpaceObject):
 
 class PingBox:
     def __init__(self, start_pos, end_pos, colour, ttl=1):
-        self.start_pos = start_pos
-        self.end_pos = end_pos
-        self.colour = colour
-        self.ttl = ttl
+        self._start_pos = start_pos
+        self._end_pos = end_pos
+        self._colour = colour
+        self._ttl = ttl
 
     def get_ttl(self):
         return self._ttl
@@ -106,3 +112,12 @@ class PingBox:
     def decrement_ttl(self):
         if self._ttl > 0:
             self._ttl -= 1
+
+    def get_start_pos(self):
+        return self._start_pos
+
+    def get_end_pos(self):
+        return self._end_pos
+
+    def get_colour(self):
+        return self._colour
