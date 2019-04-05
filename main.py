@@ -37,11 +37,7 @@ class Game:
                           "add_ping": "Click and drag to create a ping for the current ship..."}
         self._click_started_pos = None
 
-    def get_objects_in_space(self, grid_ref=None, x=None, y=None):
-        if grid_ref is not None:
-            x, y = grid_to_coord(grid_ref)
-        else:
-            pass
+    def get_objects_in_space(self, x=None, y=None):
         found_ships = []
         found_objects = []
         for s in self._ships:
@@ -486,6 +482,24 @@ class Game:
 
     def remove_ping(self, index):
         p = self._ping_boxes.pop(index)
+
+    def format_for_ping(self, start_pos, end_pos):
+        entries = []
+        for y in range((end_pos[1] - start_pos[1]) + 1):
+            for x in range((end_pos[0] - start_pos[0]) + 1):
+                ships, objects = self.get_objects_in_space(x, y)
+                # [x, y, type (ship, trail), direction (0-7)]
+                for o in objects:
+                    type_text = "?"
+                    if type(o) == TravelTrail:
+                        type_text = "trail"
+                    entries.append([o.get_x(), o.get_y(), type_text, o.get_direction()])
+                for s in ships:
+                    type_text = ""
+                    if type(s) == Ship:
+                        type_text = "ship"
+                    entries.append([s.get_x(), s.get_y(), type_text, s.get_direction()])
+        return entries
 
 
 def is_adjacent(point1, point2):
