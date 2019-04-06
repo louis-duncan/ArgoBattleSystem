@@ -1,11 +1,11 @@
-import random
-
 from assets import *
 from control_objects import *
+from coms import *
 
 import pygame
 import pygame.gfxdraw
 import easygui
+import random
 
 pygame.init()
 
@@ -36,6 +36,7 @@ class Game:
         self._messages = {"add_ship": "Click a cell to add ship...",
                           "add_ping": "Click and drag to create a ping for the current ship..."}
         self._click_started_pos = None
+        self._ftp = FTPSender()
 
     def get_objects_in_space(self, x=None, y=None):
         found_ships = []
@@ -139,6 +140,7 @@ class Game:
         self._history = []
         for s in self._ship_selectors:
             s.clear_history()
+            self._ftp.send([], s.get_ship_desc())
 
     def draw_board(self, screen):
         for y in range(self._grid_height + 1):
@@ -234,7 +236,9 @@ class Game:
         elif history_item[0] == "create_object":
             self.remove_object(history_item[1])
         elif history_item[0] == "create_ping":
+            ping_ship = self._ping_boxes[-1].get_ship_desc()
             self.remove_ping(history_item[1])
+            self._ftp.send(None, ping_ship)
         elif history_item[0] == "turn":
             if history_item[2] == "left":
                 self.turn_ship(history_item[1], "right", False)
@@ -421,7 +425,7 @@ class Game:
     def get_default_button_height(self):
         return self._default_button_height
 
-    def add_ping(self, pos):
+    def add_ping(self, pos, detailed=True):
         col = GREY
         if self._ships[self._selected_ship].get_colour() == "red":
             col = RED
@@ -435,8 +439,10 @@ class Game:
             col = BLACK
         else:
             pass
-        new_pb = PingBox(self._click_started_pos, pos, col)
+        new_pb = PingBox(self._click_started_pos, pos, col, self._ships[self._selected_ship].get_description())
         self._ping_boxes.append(new_pb)
+        self._ftp.send(self.format_for_ping(self._click_started_pos, pos, detailed),
+                       self._ships[self._selected_ship].get_description())
         self._add_history(("create_ping", self._ping_boxes.index(new_pb)))
 
     def draw_click_drag(self, screen):
@@ -483,21 +489,28 @@ class Game:
     def remove_ping(self, index):
         p = self._ping_boxes.pop(index)
 
-    def format_for_ping(self, start_pos, end_pos):
+    def format_for_ping(self, start_pos, end_pos, detailed=True):
         entries = []
+        detailed = False
         for y in range((end_pos[1] - start_pos[1]) + 1):
             for x in range((end_pos[0] - start_pos[0]) + 1):
-                ships, objects = self.get_objects_in_space(x, y)
+                rel_x = x + start_pos[0]
+                rel_y = y + start_pos[1]
+                ships, objects = self.get_objects_in_space(rel_x, rel_y)
                 # [x, y, type (ship, trail), direction (0-7)]
                 for o in objects:
-                    type_text = "?"
-                    if type(o) == TravelTrail:
+                    if not detailed:
+                        type_text = "?"
+                    elif type(o) == TravelTrail:
                         type_text = "trail"
+                    else:
+                        type_text = "?"
                     entries.append([o.get_x(), o.get_y(), type_text, o.get_direction()])
                 for s in ships:
-                    type_text = ""
-                    if type(s) == Ship:
+                    if detailed:
                         type_text = "ship"
+                    else:
+                        type_text = "?"
                     entries.append([s.get_x(), s.get_y(), type_text, s.get_direction()])
         return entries
 

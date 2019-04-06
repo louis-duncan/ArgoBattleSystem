@@ -3,6 +3,7 @@ import json
 import os
 import random
 import requests
+import _thread
 
 HOST = "home.ltcomputing.co.uk"
 FTP_PORT = 31416
@@ -37,7 +38,10 @@ class FTPSender:
             self._ftp.storbinary("STOR {}".format(destination), fh)
         self._close()
 
-    def send(self, obj, ship_name):
+    def send(self, obj, ship_name, threaded=True):
+        if threaded:
+            _thread.start_new(self.send, (obj, ship_name, False))
+            return
         path = self._format_for_sending(obj)
         self._connect()
         self._ftp_upload(path, "ship_{}.json".format(ship_name))

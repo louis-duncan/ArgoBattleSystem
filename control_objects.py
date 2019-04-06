@@ -269,3 +269,6 @@ class ShipSelector(Box):
         if new_line != "":
             lines.append(new_line)
         return lines
+
+    def get_ship_desc(self):
+        return self._ship.get_description()
