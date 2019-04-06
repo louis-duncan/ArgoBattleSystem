@@ -36,7 +36,6 @@ class FTPSender:
         self._connect()
         with open(source, "br") as fh:
             self._ftp.storbinary("STOR {}".format(destination), fh)
-        self._close()
 
     def send(self, obj, ship_name, threaded=True):
         if threaded:

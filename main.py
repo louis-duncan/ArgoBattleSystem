@@ -7,7 +7,6 @@ import pygame.gfxdraw
 import easygui
 import random
 
-pygame.init()
 
 
 class Game:
@@ -617,12 +616,12 @@ def main():
     game.add_control_object(add_ship_button)
     game.add_control_object(add_ping_button)
 
-    clock = pygame.time.Clock()
 
     ctrl_down = False
 
     # Initialise screen
     pygame.init()
+    clock = pygame.time.Clock()
     screen = pygame.display.set_mode(screen_size)  # , pygame.FULLSCREEN)
     pygame.display.set_caption('Argo Battle')
 

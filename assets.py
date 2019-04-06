@@ -100,12 +100,13 @@ class Decoy(SpaceObject):
 
 
 class PingBox:
-    def __init__(self, start_pos, end_pos, colour, creator, ttl=1):
+    def __init__(self, start_pos, end_pos, colour, creator, detailed=True, ttl=1):
         self._start_pos = start_pos
         self._end_pos = end_pos
         self._colour = colour
         self._ttl = ttl
         self._creator = creator
+        self._detailed = detailed
 
     def get_ttl(self):
         return self._ttl
@@ -125,3 +126,6 @@ class PingBox:
 
     def get_ship_desc(self):
         return self._creator
+
+    def get_detailed(self):
+        return self._detailed
