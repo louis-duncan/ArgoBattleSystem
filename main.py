@@ -491,7 +491,6 @@ class Game:
 
     def format_for_ping(self, start_pos, end_pos, detailed=True):
         entries = []
-        detailed = False
         for y in range((end_pos[1] - start_pos[1]) + 1):
             for x in range((end_pos[0] - start_pos[0]) + 1):
                 rel_x = x + start_pos[0]
