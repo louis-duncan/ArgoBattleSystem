@@ -1,7 +1,7 @@
-import os
-
 import easygui
 import pygame
+
+from coms import *
 
 pygame.init()
 
@@ -15,17 +15,20 @@ SWEEP_SPRITE = pygame.image.load("sprites/sweep.png")
 
 
 class Display:
-    def __init__(self, screen_size, grid_size):
+    def __init__(self, screen_size, grid_size, ship_name):
         self.grid_size = grid_size
         self._current_data = []
         self.objects = []
         self.screen_size = screen_size
+        self.ship_name = ship_name
         self.cell_size = int(screen_size[1] / (grid_size[1] + 1))
         self.board_pos = (round((self.screen_size[0] - (self.cell_size * (self.grid_size[0] + 1))) / 2), 0)
         self.font = pygame.font.Font(FONT, round(self.cell_size * 0.5), bold=1)
         sweep_rect = (self.board_pos[0] + self.cell_size, self.board_pos[1] + self.cell_size,
                       (self.cell_size * self.grid_size[0]), (self.cell_size * self.grid_size[1]))
         self._sweep = Sweep(sweep_rect, round(self.screen_size[1] / 40), cell_size=self.cell_size)
+        self._last_data_read = None
+        self._getter = HTTPGetter()
 
     def add_entities(self, entities):
         pass
@@ -71,6 +74,8 @@ class Display:
                 screen.blit(char_render, char_pos)
 
     def update(self):
+        self._check_for_updates()
+
         for o in self.objects:
             o.update()
         self._sweep.update()
@@ -83,6 +88,27 @@ class Display:
 
     def sweep(self):
         self._sweep.reset()
+
+    def _check_for_updates(self):
+        new_data = self._getter.get()
+        if new_data == self._last_data_read:
+            return
+
+    def _object_exists(self, obj):
+        for o in self.objects:
+            if o.matches(obj):
+                return True
+        return False
+
+
+class ScreenObject:
+    def __init__(self, pos, type_text, direction):
+        self.pos = pos
+        self.type_text = type_text
+        self.direction = direction
+
+    def matches(self, obj):
+        return self.pos == obj.pos and self.type_text == obj.type_text and self.direction == obj.direction
 
 
 class Sweep:
@@ -130,7 +156,6 @@ class Sweep:
                         )
         else:
             pass
-
 
     def reset(self):
         self._x_pos = -self._sprite_width
@@ -191,7 +216,7 @@ def main():
     background = background.convert()
     background.fill((0, 0, 0))
 
-    viewer = Display(screen_size, (20, 20))
+    viewer = Display(screen_size, (20, 20), ship_name)
 
     # Blit everything to the screen
     screen.blit(background, (0, 0))
