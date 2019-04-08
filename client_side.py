@@ -24,7 +24,7 @@ class Display:
         self.font = pygame.font.Font(FONT, round(self.cell_size * 0.5), bold=1)
         sweep_rect = (self.board_pos[0] + self.cell_size, self.board_pos[1] + self.cell_size,
                       (self.cell_size * self.grid_size[0]), (self.cell_size * self.grid_size[1]))
-        self._sweep = Sweep(sweep_rect)
+        self._sweep = Sweep(sweep_rect, round(self.screen_size[1] / 40))
 
     def add_entities(self, entities):
         pass
@@ -85,7 +85,7 @@ class Display:
 
 
 class Sweep:
-    def __init__(self, rect, speed=5):
+    def __init__(self, rect, speed=20):
         self._rect = rect
         self._speed = speed
         self._sprite_width = SWEEP_SPRITE.get_size()[0]
@@ -94,6 +94,8 @@ class Sweep:
         self.finished = False
 
     def update(self):
+        if self.finished:
+            return
         self._x_pos += self._speed
         if self._x_pos - self._sprite_width >= self._rect[2]:
             self.finished = True
@@ -125,24 +127,37 @@ def main():
     # Initialise screen
     clock = pygame.time.Clock()
 
-    resp = easygui.multenterbox("Enter window size:\n(resolution of monitor if running full-screen)",
-                                "Sensor Viewer", ["Width:", "Height:"], list(screen_size))
-    if resp is None:
-        return
-    else:
-        screen_size = [int(i) for i in resp]
-
     if full_screen:
-        resp = easygui.msgbox("Ensure that the secondary display is configured in Windows to be oriented directly "
-                              "above the primary display, and aligned along the left hand side as shown below:",
-                              "Sensor View",
-                              image=DEMO_IMAGE
-                              )
+        screen_choices = ["Primary (This display)", "Secondary (Another display)"]
+        resp = easygui.buttonbox("Choose display:", "Sensor Viewer", screen_choices)
         if resp is None:
             return
-        os.environ['SDL_VIDEO_WINDOW_POS'] = "0,-{}".format(screen_size[1])
-        screen = pygame.display.set_mode(screen_size, pygame.NOFRAME)
+        if resp == screen_choices[0]:
+            screen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+            screen = pygame.display.set_mode(screen_size, pygame.FULLSCREEN)
+        else:
+            resp = easygui.multenterbox("Enter screen size:\n(resolution of secondary monitor)",
+                                        "Sensor Viewer", ["Width:", "Height:"], list(screen_size))
+            if resp is None:
+                return
+            else:
+                screen_size = [int(i) for i in resp]
+            resp = easygui.msgbox("Ensure that the secondary display is configured in Windows to be oriented directly "
+                                  "above the primary display, and aligned along the left hand side as shown below:",
+                                  "Sensor View",
+                                  image=DEMO_IMAGE
+                                  )
+            if resp is None:
+                return
+            os.environ['SDL_VIDEO_WINDOW_POS'] = "0,-{}".format(screen_size[1])
+            screen = pygame.display.set_mode(screen_size, pygame.NOFRAME)
     else:
+        resp = easygui.multenterbox("Enter window size:",
+                                    "Sensor Viewer", ["Width:", "Height:"], list(screen_size))
+        if resp is None:
+            return
+        else:
+            screen_size = [int(i) for i in resp]
         screen = pygame.display.set_mode(screen_size)
     pygame.display.set_caption('{} Sensor Viewer'.format(ship_name))
 
