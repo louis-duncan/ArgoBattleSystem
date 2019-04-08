@@ -13,6 +13,7 @@ FONT = "fonts/newyorkescape.ttf"
 # FONT = "fonts/Beef'd.ttf"
 SWEEP_SPRITE = pygame.image.load("sprites/sweep.png")
 
+
 class Display:
     def __init__(self, screen_size, grid_size):
         self.grid_size = grid_size
@@ -24,7 +25,7 @@ class Display:
         self.font = pygame.font.Font(FONT, round(self.cell_size * 0.5), bold=1)
         sweep_rect = (self.board_pos[0] + self.cell_size, self.board_pos[1] + self.cell_size,
                       (self.cell_size * self.grid_size[0]), (self.cell_size * self.grid_size[1]))
-        self._sweep = Sweep(sweep_rect, round(self.screen_size[1] / 40))
+        self._sweep = Sweep(sweep_rect, round(self.screen_size[1] / 40), cell_size=self.cell_size)
 
     def add_entities(self, entities):
         pass
@@ -85,10 +86,10 @@ class Display:
 
 
 class Sweep:
-    def __init__(self, rect, speed=20):
+    def __init__(self, rect, speed=20, cell_size=20):
         self._rect = rect
         self._speed = speed
-        self._sprite_width = SWEEP_SPRITE.get_size()[0]
+        self._sprite_width = 4 * cell_size
         self._sprite = pygame.transform.scale(SWEEP_SPRITE, (self._sprite_width, self._rect[3]))
         self._x_pos = -self._sprite_width
         self.finished = False
@@ -97,15 +98,39 @@ class Sweep:
         if self.finished:
             return
         self._x_pos += self._speed
-        if self._x_pos - self._sprite_width >= self._rect[2]:
+        if self._x_pos > self._rect[2]:
             self.finished = True
 
     def draw(self, screen):
         if self.finished:
             return
+        # pygame.draw.rect(screen, (255, 255, 255), self._rect, 1)
+        # pygame.draw.rect(screen, (255, 255, 255),
+        #                  (self._rect[0] + self._x_pos,
+        #                   self._rect[1]) + (self._sprite.get_size()[0],
+        #                                     self._sprite.get_size()[1]))
+
         if self._x_pos >= 0 and self._x_pos + self._sprite_width <= self._rect[2]:
             screen.blit(self._sprite, (self._rect[0] + self._x_pos, self._rect[1]))
-        # Todo: Add fade cases.
+        elif self._x_pos > self._rect[2] - self._sprite_width:
+            screen.blit(self._sprite, (self._rect[0] + self._x_pos, self._rect[1]),
+                        (0,  # Crop x
+                         0,  # Crop y
+                         self._sprite_width - ((self._x_pos + self._sprite_width) - self._rect[2]),  # Crop width
+                         self._rect[3],  # Crop height
+                         ))
+        elif self._x_pos < 0 and abs(self._x_pos) < self._sprite_width:
+            screen.blit(self._sprite,
+                        (self._rect[0], self._rect[1]),  # Pos
+                        (- self._x_pos,  # Crop x
+                         0,  # Crop y
+                         self._sprite_width + self._x_pos,  # Crop width
+                         self._rect[3]  # Crop height
+                         )
+                        )
+        else:
+            pass
+
 
     def reset(self):
         self._x_pos = -self._sprite_width
