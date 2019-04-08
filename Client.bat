@@ -1,0 +1,1 @@
+start venv\Scripts\pythonw client_side.py
