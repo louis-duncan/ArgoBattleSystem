@@ -8,7 +8,6 @@ import easygui
 import random
 
 
-
 class Game:
     def __init__(self, grid_width, grid_height, board_pos, cell_size):
         self._tool_tip = ToolTip()
@@ -139,7 +138,7 @@ class Game:
         self._history = []
         for s in self._ship_selectors:
             s.clear_history()
-            self._ftp.send([], s.get_ship_desc())
+            self._ftp.send("next_round", s.get_ship_desc())
 
     def draw_board(self, screen):
         for y in range(self._grid_height + 1):
@@ -237,7 +236,7 @@ class Game:
         elif history_item[0] == "create_ping":
             ping_ship = self._ping_boxes[-1].get_ship_desc()
             self.remove_ping(history_item[1])
-            self._ftp.send(None, ping_ship)
+            self._ftp.send("clear", ping_ship)
         elif history_item[0] == "turn":
             if history_item[2] == "left":
                 self.turn_ship(history_item[1], "right", False)
