@@ -1,4 +1,3 @@
-import time
 import easygui
 import pygame
 
@@ -18,10 +17,6 @@ SPRITES_DIR = "sprites/"
 sprite_defs = {"trail": "cs_trail.png",
                "ship": "cs_ship.png",
                "?": "cs_unknown.png"}
-sprites = {}
-for k in sprite_defs:
-    sprites[k] = pygame.image.load(os.path.join(SPRITES_DIR, sprite_defs[k]))
-OBJECT_SPRITES = sprites
 
 
 class Display:
@@ -42,11 +37,21 @@ class Display:
         self._last_refresh_time = 0
         self._last_updated_col = -1
 
+        self._sprites = {}
+        for k in sprite_defs:
+            self._sprites[k] = pygame.image.load(os.path.join(SPRITES_DIR, sprite_defs[k]))
+            self._sprites[k] = pygame.transform.scale(self._sprites[k], (self.cell_size, self.cell_size))
+
     def add_entities(self, entities):
         pass
 
     def clear_entities(self, quick=False):
-        pass
+        if quick:
+            self._current_data = list()
+            self.objects = list()
+        else:
+            for o in self.objects:
+                o.start_fade()
 
     def _draw_board(self, screen):
         for x in range(self.grid_size[0] + 1):
@@ -86,45 +91,105 @@ class Display:
                 screen.blit(char_render, char_pos)
 
     def update(self):
-        if self._last_refresh_time - time.time() > REFRESH_RATE and self._sweep.finished:
-            self._check_for_updates()
-            self._last_updated_col = -1
+        if time.time() - self._last_refresh_time > REFRESH_RATE and self._sweep.finished:
+            updates_received = self._check_for_updates()
+            if updates_received:
+                print("Update:", self._last_data_read)
+                if self._last_data_read == "clear":
+                    self.clear_entities(True)
+                elif self._last_data_read == "next_round":
+                    self.clear_entities(False)
+                elif type(self._last_data_read) is list:
+                    if len(self._last_data_read) > 0:
+                        for e in self._last_data_read:
+                            self._current_data.append(ScreenObject((e[0], e[1]),
+                                                                   self.get_relative_pos((e[0], e[1])),
+                                                                   e[2],
+                                                                   e[3]))
+                        self._filter_current_data()
+                        self._last_updated_col = -1
+                        self.start_sweep()
+                    else:
+                        pass
+                else:
+                    print("Invalid data from server:", self._last_data_read)
+            else:
+                pass
 
         if not self._sweep.finished:
             self._sweep.update()
-            col_to_refresh = (self._sweep.x_pos // self.cell_size) - 1
+            col_to_refresh = (self._sweep.x_pos // self.cell_size)
             if col_to_refresh >= 0 and col_to_refresh != self._last_updated_col:
-                print("Updating col", col_to_refresh)
-
-                # Todo: Add refresh code.
-
+                self._clear_column(col_to_refresh)
+                self._refill_column(col_to_refresh)
                 self._last_updated_col = col_to_refresh
-
-
 
         for o in self.objects:
             o.update()
+            if o.gone:
+                self.objects.remove(o)
 
-    def get_object(self, pos):
+    def _clear_column(self, col):
+        i = 0
+        while i < len(self.objects):
+            if self.objects[i].grid_pos[0] == col:
+                self.objects.remove(self.objects[i])
+            else:
+                i += 1
+
+    def _refill_column(self, col):
+        for o in self._current_data:
+            if o.grid_pos[0] == col:
+                self.objects.append(o)
+
+    def get_objects(self, pos):
+        objects = []
         for o in self.objects:
-            if o.pos == pos:
-                return o
+            if o.grid_pos == pos:
+                objects.append(o)
             else:
                 pass
+        return objects
 
     def draw(self, screen):
         self._draw_board(screen)
         for o in self.objects:
-            o.draw(screen)
+            o.draw(screen, self._sprites[o.type_text])
         self._sweep.draw(screen)
 
     def start_sweep(self):
         self._sweep.reset()
 
     def _check_for_updates(self):
-        new_data = self._getter.get()
+        new_data = self._getter.get(self.ship_name)
+        self._last_refresh_time = time.time()
+
         if new_data == self._last_data_read:
-            return
+            return False
+
+        self._last_data_read = new_data
+        return True
+
+    def get_relative_pos(self, pos):
+        return (((self.cell_size * (pos[0] + 1)) + self.board_pos[0]),
+                ((self.cell_size * (pos[1] + 1)) + self.board_pos[1]))
+
+    def _filter_current_data(self):
+        for x in range(self.grid_size[0]):
+            for y in range(self.grid_size[1]):
+                objects = self.get_objects((x, y))
+                if len(objects) <= 1:
+                    pass
+                else:
+                    for o in objects:
+                        self.objects.remove(o)
+                        exists = False
+                        for p in self.objects:
+                            if o.matches(p):
+                                exists = True
+                                break
+                        if not exists:
+                            self.objects.append(o)
 
     def _object_exists(self, obj):
         for o in self.objects:
@@ -139,17 +204,46 @@ class ScreenObject:
         self.real_pos = real_pos
         self.type_text = type_text
         self.direction = direction
+        self._fade_rate = 100  # Per second
         self.fade_out = False
         self.gone = False
+        self._fade_start_time = 0
 
     def matches(self, obj):
         return self.grid_pos == obj.grid_pos and self.type_text == obj.type_text and self.direction == obj.direction
 
     def update(self):
-        pass
+        if (not self.gone) and self.fade_out:
+            if time.time() - self._fade_start_time > (255 / self._fade_rate):
+                self.gone = True
 
-    def draw(self, screen):
-        pass
+    def start_fade(self):
+        self._fade_start_time = time.time()
+        self.fade_out = True
+
+    def draw(self, screen, sprite):
+        if self.gone:
+            return
+        # pygame.draw.circle(screen, (255, 255, 255), (self.real_pos[0], self.real_pos[1]), 3)
+        x, y = self.real_pos
+
+        rot_sprite = pygame.transform.rotate(sprite, self.direction * -45).convert_alpha()
+
+        op = 255
+        if self.fade_out:
+            op = 255 - round((time.time() - self._fade_start_time) * self._fade_rate)
+
+        temp = pygame.Surface((sprite.get_width(), sprite.get_height())).convert()
+        temp.blit(screen, (-x, -y))
+        temp.blit(rot_sprite, (0, 0),
+                  ((rot_sprite.get_width() / 2) - (sprite.get_width() / 2),
+                   (rot_sprite.get_height() / 2) - (sprite.get_height() / 2),
+                   sprite.get_width(),
+                   sprite.get_height())
+                  )
+
+        temp.set_alpha(op)
+        screen.blit(temp, self.real_pos)
 
 
 class Sweep:
@@ -159,7 +253,7 @@ class Sweep:
         self._sprite_width = 4 * cell_size
         self._sprite = pygame.transform.scale(SWEEP_SPRITE, (self._sprite_width, self._rect[3]))
         self.x_pos = -self._sprite_width
-        self.finished = False
+        self.finished = True
 
     def update(self):
         if self.finished:
