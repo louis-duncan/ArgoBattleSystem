@@ -68,9 +68,9 @@ class HTTPGetter:
 
     def get(self, ship_name):
         r = requests.get("http://{}:{}/ship_{}.json".format(HOST,
-                                                                HTTP_PORT,
-                                                                ship_name))
+                                                            HTTP_PORT,
+                                                            ship_name))
         if r.status_code == 200:
             return json.loads(r.text)
         else:
-            return None
+            return list()
