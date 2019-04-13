@@ -12,7 +12,7 @@ FONT = "fonts/newyorkescape.ttf"
 # FONT = "fonts/CHECKBK0.TTF"
 # FONT = "fonts/Beef'd.ttf"
 SWEEP_SPRITE = pygame.image.load("sprites/sweep.png")
-REFRESH_RATE = 1
+REFRESH_RATE = 0.2
 SPRITES_DIR = "sprites/"
 sprite_defs = {"trail": "cs_trail.png",
                "ship": "cs_ship.png",
@@ -373,6 +373,5 @@ def main():
         pygame.display.flip()
 
         clock.tick(30)
-
 
 main()
