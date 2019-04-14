@@ -34,7 +34,7 @@ class Game:
         self._messages = {"add_ship": "Click a cell to add ship...",
                           "add_ping": "Click and drag to create a ping for the current ship..."}
         self._click_started_pos = None
-        self._ftp = FTPSender()
+        self._sender = Sender()
 
     def get_objects_in_space(self, x=None, y=None):
         found_ships = []
@@ -138,7 +138,7 @@ class Game:
         self._history = []
         for s in self._ship_selectors:
             s.clear_history()
-            self._ftp.send("next_round", s.get_ship_desc())
+            self._sender.send(s.get_ship_desc(), "next_round")
 
     def draw_board(self, screen):
         for y in range(self._grid_height + 1):
@@ -236,7 +236,7 @@ class Game:
         elif history_item[0] == "create_ping":
             ping_ship = self._ping_boxes[-1].get_ship_desc()
             self.remove_ping(history_item[1])
-            self._ftp.send("clear", ping_ship)
+            self._sender.send(ping_ship, "clear")
         elif history_item[0] == "turn":
             if history_item[2] == "left":
                 self.turn_ship(history_item[1], "right", False)
@@ -439,8 +439,9 @@ class Game:
             pass
         new_pb = PingBox(self._click_started_pos, pos, col, self._ships[self._selected_ship].get_description())
         self._ping_boxes.append(new_pb)
-        self._ftp.send(self.format_for_ping(self._click_started_pos, pos, detailed),
-                       self._ships[self._selected_ship].get_description())
+        self._sender.send(self._ships[self._selected_ship].get_description(),
+                          self.format_for_ping(self._click_started_pos, pos, detailed)
+                          )
         self._add_history(("create_ping", self._ping_boxes.index(new_pb)))
 
     def draw_click_drag(self, screen):
@@ -510,6 +511,11 @@ class Game:
                         type_text = "?"
                     entries.append([s.get_x(), s.get_y(), type_text, s.get_direction()])
         return entries
+
+    def end(self):
+        print("Resetting")
+        self._sender.send("", "reset")
+        time.sleep(0.2)
 
 
 def is_adjacent(point1, point2):
@@ -615,7 +621,6 @@ def main():
     game.add_control_object(add_ship_button)
     game.add_control_object(add_ping_button)
 
-
     ctrl_down = False
 
     # Initialise screen
@@ -637,6 +642,7 @@ def main():
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                game.end()
                 return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
