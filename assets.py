@@ -20,6 +20,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GREY = (150, 150, 150)
 
+
 class SpaceObject:
     def __init__(self, description, direction, location, colour):
         assert colour in COLOURS

@@ -1,5 +1,6 @@
 import easygui
 import pygame
+import os
 
 from coms import *
 
@@ -375,3 +376,4 @@ def main():
         clock.tick(30)
 
 main()
+
