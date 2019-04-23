@@ -5,9 +5,17 @@ import time
 import requests
 import _thread
 
-HOST = "home.ltcomputing.co.uk"
-UPLOAD_PORT = 31416
-HTTP_PORT = 31417
+HOST = ""
+UPLOAD_PORT = 0
+HTTP_PORT = 0
+
+with open("client_config.json", "r") as config_fh:
+    config_data = json.loads(config_fh.read())
+    assert type(config_data) is dict
+    for k in config_data:
+        locals()[k] = config_data[k]
+
+assert "" not in (HOST, UPLOAD_PORT, HTTP_PORT)
 
 TEMP_DIR = "tmp/"
 
