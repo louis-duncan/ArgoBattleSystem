@@ -29,10 +29,12 @@ class Game:
         self._ship_selectors = []
         self._default_button_height = 60
         self._actions = {"add_ship": False,
-                         "add_ping": False,
+                         "add_detailed_ping": False,
+                         "add_vague_ping": False,
                          }
         self._messages = {"add_ship": "Click a cell to add ship...",
-                          "add_ping": "Click and drag to create a ping for the current ship..."}
+                          "add_detailed_ping": "Click and drag to create a detailed ping for the current ship...",
+                          "add_vague_ping": "Click and drag to create a vague ping for the current ship..."}
         self._click_started_pos = None
         self._sender = Sender()
 
@@ -423,6 +425,12 @@ class Game:
     def get_default_button_height(self):
         return self._default_button_height
 
+    def add_detailed_ping(self, pos):
+        self.add_ping(pos)
+
+    def add_vague_ping(self, pos):
+        self.add_ping(pos, False)
+
     def add_ping(self, pos, detailed=True):
         col = GREY
         if self._ships[self._selected_ship].get_colour() == "red":
@@ -445,7 +453,7 @@ class Game:
         self._add_history(("create_ping", self._ping_boxes.index(new_pb)))
 
     def draw_click_drag(self, screen):
-        if self._click_started_pos is not None and self._actions["add_ping"]:
+        if self._click_started_pos is not None and (self._actions["add_detailed_ping"] or self._actions["add_vague_ping"]):
             start_coord = self._click_started_pos
             end_coord = self.coord_at_pos(pygame.mouse.get_pos())
             if end_coord is None:
@@ -512,10 +520,9 @@ class Game:
                     entries.append([s.get_x(), s.get_y(), type_text, s.get_direction()])
         return entries
 
-    def end(self):
+    def send_reset_signal(self):
         print("Resetting")
         self._sender.send("", "reset")
-        time.sleep(0.2)
 
 
 def is_adjacent(point1, point2):
@@ -592,16 +599,26 @@ def main():
                           " ►",
                           (255, 255, 255)
                           )
-    add_ping_button = Button((game.get_controls_area()[0],
-                              left_button.get_y() - (game.get_default_button_height() + 5)),
-                             game.get_controls_area()[2],
-                             game.get_default_button_height(),
-                             (0, 0, 200),
-                             "arm_add_ping",
-                             pygame.K_p,
-                             "Create Ping",
-                             (255, 255, 255)
-                             )
+    detailed_ping_button = Button((game.get_controls_area()[0],
+                                   left_button.get_y() - (game.get_default_button_height() + 5)),
+                                  (game.get_controls_area()[2] - 5) / 2,
+                                  game.get_default_button_height(),
+                                  (0, 0, 200),
+                                  "arm_add_detailed_ping",
+                                  pygame.K_p,
+                                  "Detailed Ping",
+                                  (255, 255, 255)
+                                  )
+    vague_ping_button = Button((game.get_controls_area()[0] + ((game.get_controls_area()[2] - 5) / 2) + 5,
+                                left_button.get_y() - (game.get_default_button_height() + 5)),
+                               (game.get_controls_area()[2] - 5) / 2,
+                               game.get_default_button_height(),
+                               (0, 0, 200),
+                               "arm_add_vague_ping",
+                               pygame.K_p,
+                               "Vague Ping",
+                               (255, 255, 255)
+                               )
     add_ship_button = Button((game.get_controls_area()[0],
                               game.get_controls_area()[1]),
                              game.get_controls_area()[2],
@@ -619,7 +636,8 @@ def main():
     game.add_control_object(up_button)
     game.add_control_object(right_button)
     game.add_control_object(add_ship_button)
-    game.add_control_object(add_ping_button)
+    game.add_control_object(detailed_ping_button)
+    game.add_control_object(vague_ping_button)
 
     ctrl_down = False
 
@@ -638,11 +656,13 @@ def main():
     screen.blit(background, (0, 0))
     pygame.display.flip()
 
+    # Ensure all clients are cleared
+    game.send_reset_signal()
+
     # Event loop
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game.end()
                 return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
