@@ -18,6 +18,7 @@ SPRITES_DIR = "sprites/"
 sprite_defs = {"trail": "cs_trail.png",
                "ship": "cs_ship.png",
                "?": "cs_unknown.png"}
+arial = pygame.font.Font(pygame.font.match_font("Arial"), 20)
 
 
 class Display:
@@ -48,11 +49,11 @@ class Display:
 
     def clear_entities(self, quick=False):
         if quick:
-            self._current_data = list()
             self.objects = list()
         else:
             for o in self.objects:
                 o.start_fade()
+        self._current_data = list()
 
     def _draw_board(self, screen):
         for x in range(self.grid_size[0] + 1):
@@ -145,7 +146,7 @@ class Display:
 
     def get_objects(self, pos):
         objects = []
-        for o in self.objects:
+        for o in self._current_data:
             if o.grid_pos == pos:
                 objects.append(o)
             else:
@@ -176,21 +177,26 @@ class Display:
                 ((self.cell_size * (pos[1] + 1)) + self.board_pos[1]))
 
     def _filter_current_data(self):
-        for x in range(self.grid_size[0]):
-            for y in range(self.grid_size[1]):
-                objects = self.get_objects((x, y))
-                if len(objects) <= 1:
-                    pass
+        # Goes through all object, and looks to see if another object exists with the same properties.
+        # Removes a non-ship object if there is a ship present in the same space.
+        # Removes a ? object is there is anything else in the space.
+        for o in self._current_data:
+            local_objects = self.get_objects(o.grid_pos)
+            local_objects.remove(o)
+            print("object", o, "sharing with", len(local_objects), "objects")
+            if len(local_objects) == 0:
+                pass
+            else:
+                if o.type_text == "?":
+                    print("Is ? and has local objects")
+                    self._current_data.remove(o)
                 else:
-                    for o in objects:
-                        self.objects.remove(o)
-                        exists = False
-                        for p in self.objects:
-                            if o.matches(p):
-                                exists = True
-                                break
-                        if not exists:
-                            self.objects.append(o)
+                    for l in local_objects:
+                        if o.matches(l):
+                            self._current_data.remove(l)
+                            break
+                        elif l.type_text == "?":
+                            self._current_data.remove(l)
 
     def _object_exists(self, obj):
         for o in self.objects:
@@ -228,7 +234,11 @@ class ScreenObject:
         # pygame.draw.circle(screen, (255, 255, 255), (self.real_pos[0], self.real_pos[1]), 3)
         x, y = self.real_pos
 
-        rot_sprite = pygame.transform.rotate(sprite, self.direction * -45).convert_alpha()
+        if self.type_text == "?":
+            angle = 0
+        else:
+            angle = self.direction * -45
+        rot_sprite = pygame.transform.rotate(sprite, angle).convert_alpha()
 
         op = 255
         if self.fade_out:
@@ -241,6 +251,7 @@ class ScreenObject:
                    (rot_sprite.get_height() / 2) - (sprite.get_height() / 2),
                    sprite.get_width(),
                    sprite.get_height())
+
                   )
 
         temp.set_alpha(op)
@@ -371,6 +382,8 @@ def main():
 
         screen.blit(background, (0, 0))
         viewer.draw(screen)
+        screen.blit(arial.render(str(len(viewer.objects)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 0))
+        screen.blit(arial.render(str(len(viewer._current_data)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 20))
         pygame.display.flip()
 
         clock.tick(30)
