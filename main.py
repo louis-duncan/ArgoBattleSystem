@@ -310,8 +310,6 @@ class Game:
             self.turn_ship(self._selected_ship, "right")
         elif bind_text == "up":
             self.move_ship(self._selected_ship)
-        elif bind_text == "add_ship":
-            self.add_ship()
         elif bind_text.startswith("arm_"):
             try:
                 self.arm_action(bind_text[4:])

@@ -24,8 +24,25 @@ def get_ip():
     for ip in address_list:
         if ip.startswith("10.") or ip.startswith("192.168."):
             return ip
-    print("Could not find a valid local IP address.", file=sys.stderr)
-    return input("Enter local IP: ")
+    print("No local IP address could be found.")
+    ip = input("Enter IP: ")
+    return ip
+
+
+def is_valid(obj):
+    if type(obj) is not list:
+        return False
+    if len(obj) != 2:
+        return False
+    if type(obj[0]) is not str:
+        return False
+    if type(obj[1]) not in (str, list):
+        if type(obj) is str and obj not in ("reset",
+                                            "next_round",
+                                            "clear",
+                                            ):
+            return False
+    return True
 
 
 def clear_all():
@@ -53,8 +70,24 @@ def worker(s):
         if b == b"":
             done = True
         else:
-            data += b.decode()
-    ship_name, data = json.loads(data)
+            try:
+                data += b.decode()
+            except UnicodeDecodeError:
+                print(time.ctime(time.time()), " - Received an invalid byte received. Closing connection.")
+                s.close()
+                return
+    s.close()
+    print(time.ctime(time.time()), " - Received {} bytes.".format(len(data)))
+    try:
+        data = json.loads(data)
+    except json.JSONDecodeError:
+        print(time.ctime(time.time()), " - Could not decode data.")
+        return
+    if is_valid(data):
+        ship_name, data = data
+    else:
+        print(time.ctime(time.time()), " - Invalid data.")
+        return
     print(" - Ship:", ship_name)
     print(" - Data:", data)
     if ship_name == "" and data == "reset":
@@ -69,7 +102,7 @@ def worker(s):
 def main():
     ip = get_ip()
     ss = socket.socket()
-    ss.bind((ip, LISTEN_PORT))
+    ss.bind((get_ip(), LISTEN_PORT))
     ss.listen(5)
     print(time.ctime(time.time()), " - Server started!")
     print(time.ctime(time.time()), " - Listening on", ip, "-", LISTEN_PORT)
