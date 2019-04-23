@@ -1,6 +1,7 @@
 import os
 import socket
 import json
+import sys
 import time
 
 WWW_DIR = ""
@@ -23,7 +24,8 @@ def get_ip():
     for ip in address_list:
         if ip.startswith("10.") or ip.startswith("192.168."):
             return ip
-    raise NoIPError("No local IP address could be found.")
+    print("Could not find a valid local IP address.", file=sys.stderr)
+    return input("Enter local IP: ")
 
 
 def clear_all():
@@ -65,13 +67,17 @@ def worker(s):
 
 
 def main():
+    ip = get_ip()
     ss = socket.socket()
-    ss.bind((get_ip(), LISTEN_PORT))
+    ss.bind((ip, LISTEN_PORT))
     ss.listen(5)
     print(time.ctime(time.time()), " - Server started!")
-    print(time.ctime(time.time()), " - Listening on", get_ip(), "-", LISTEN_PORT)
+    print(time.ctime(time.time()), " - Listening on", ip, "-", LISTEN_PORT)
     while True:
-        worker(ss.accept()[0])
+        try:
+            worker(ss.accept()[0])
+        except ConnectionError:
+            pass
 
 
 main()
