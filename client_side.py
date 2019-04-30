@@ -382,8 +382,8 @@ def main():
 
         screen.blit(background, (0, 0))
         viewer.draw(screen)
-        screen.blit(arial.render(str(len(viewer.objects)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 0))
-        screen.blit(arial.render(str(len(viewer._current_data)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 20))
+        # screen.blit(arial.render(str(len(viewer.objects)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 0))
+        # screen.blit(arial.render(str(len(viewer._current_data)), 1, DISPLAY_COLOUR, (0, 0, 0)), (0, 20))
         pygame.display.flip()
 
         clock.tick(30)
