@@ -66,7 +66,10 @@ def worker(s):
     data = ""
     done = False
     while not done:
-        b = s.recv(1)
+        try:
+            b = s.recv(1)
+        except ConnectionResetError:
+            break
         if b == b"":
             done = True
         else:
