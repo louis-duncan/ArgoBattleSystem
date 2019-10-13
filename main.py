@@ -1,3 +1,5 @@
+import pickle
+
 from assets import *
 from control_objects import *
 from coms import *
@@ -49,28 +51,33 @@ class Game:
                 found_objects.append(o)
         return found_ships, found_objects
 
-    def add_ship(self, location):
+    def add_ship(self, location, name=None, direction=None, colour=None):
+        print("new ship @", location)
         if len(self._ships) == 6:
             return None
 
-        if not self._actions["add_ship"]:
-            return
-
-        name = easygui.enterbox("Adding Ship at {}\n\nEnter Ship Name:".format(coord_to_grid(location)),
-                                "New Ship", "Ship " + str(len(self._ships) + 1))
+        if name is None:
+            name = easygui.enterbox("Adding Ship at {}\n\nEnter Ship Name:".format(coord_to_grid(location)),
+                                    "New Ship", "Ship " + str(len(self._ships) + 1))
         if name is None:
             return
-        colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
+
+        if colour is None:
+            colour = easygui.buttonbox("Choose ship colour:", "New Ship", [], images=COLOUR_SQUARE_PATHS)
+            colour = COLOURS[COLOUR_SQUARE_PATHS.index(colour)]
         if colour is None:
             return None
-        direction = easygui.buttonbox("Choose ship direction:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
+        if direction is None:
+            direction = easygui.buttonbox("Choose ship direction:", "New Ship", [], images=DIRECTION_SQUARE_PATHS)
         if direction is None:
             return None
-        if "random" in direction:
+        if type(direction) is int:
+            pass
+        elif "random" in direction:
             direction = random.randint(0, 7)
         else:
             direction = DIRECTION_SQUARE_PATHS_IN_ORDER.index(direction)
-        new_ship = Ship(name, direction, location, COLOURS[COLOUR_SQUARE_PATHS.index(colour)])
+        new_ship = Ship(name, direction, location, colour)
 
         self._ships.append(new_ship)
         self._add_ship_selector(self._ships.index(new_ship))
@@ -451,7 +458,8 @@ class Game:
         self._add_history(("create_ping", self._ping_boxes.index(new_pb)))
 
     def draw_click_drag(self, screen):
-        if self._click_started_pos is not None and (self._actions["add_detailed_ping"] or self._actions["add_vague_ping"]):
+        if self._click_started_pos is not None and (
+                self._actions["add_detailed_ping"] or self._actions["add_vague_ping"]):
             start_coord = self._click_started_pos
             end_coord = self.coord_at_pos(pygame.mouse.get_pos())
             if end_coord is None:
@@ -507,6 +515,8 @@ class Game:
                         type_text = "?"
                     elif type(o) == TravelTrail:
                         type_text = "trail"
+                    elif type(o) == Station:
+                        type_text = "station"
                     else:
                         type_text = "?"
                     entries.append([o.get_x(), o.get_y(), type_text, o.get_direction()])
@@ -521,6 +531,48 @@ class Game:
     def send_reset_signal(self):
         print("Resetting")
         self._sender.send("", "reset")
+
+    def export(self):
+        filename = easygui.filesavebox(title="Export Scenario",
+                                       default="scenario.argo",
+                                       filetypes=["*.argo"])
+        if filename is not None:
+            with open(filename, "bw") as fh:
+                pickle.dump([[s.as_dict() for s in self._ships], [o.as_dict() for o in self._objects]], fh)
+
+    def load_scenario(self):
+        if len(self._ships) != 0 or len(self._objects) != 0:
+            cont = easygui.ynbox("Current scenario is not empty;\n would you like to continue?")
+        else:
+            cont = True
+
+        if cont is False or cont is None:
+            return
+
+        filename = easygui.fileopenbox("Select file to import", "scenario.argo", filetypes=["*.argo"])
+
+        if filename is None:
+            return
+
+        with open(filename, "br") as fh:
+            data = pickle.load(fh)
+
+        self._ships = list()
+        self._objects = list()
+        self._ship_selectors = list()
+
+        for s in data[0]:
+            self.add_ship(s["location"],
+                          s["description"],
+                          s["direction"],
+                          s["colour"])
+
+        for o in data[1]:
+            self.add_object(TravelTrail(o["description"],
+                                        o["direction"],
+                                        o["location"],
+                                        o["colour"],
+                                        o["ttl"]))
 
 
 def is_adjacent(point1, point2):
@@ -544,7 +596,7 @@ def coord_to_grid(pos):
 def main():
     board_height = 20
     board_width = 20
-    cell_size = 45
+    cell_size = 42
 
     game = Game(board_width, board_height, (cell_size, cell_size), cell_size)
 
@@ -603,7 +655,7 @@ def main():
                                   game.get_default_button_height(),
                                   (0, 0, 200),
                                   "arm_add_detailed_ping",
-                                  pygame.K_p,
+                                  pygame.K_d,
                                   "Detailed Ping",
                                   (255, 255, 255)
                                   )
@@ -613,7 +665,7 @@ def main():
                                game.get_default_button_height(),
                                (0, 0, 200),
                                "arm_add_vague_ping",
-                               pygame.K_p,
+                               pygame.K_v,
                                "Vague Ping",
                                (255, 255, 255)
                                )
@@ -685,9 +737,13 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
                     ctrl_down = True
-                elif event.key == pygame.K_z:
-                    if ctrl_down:
-                        game.undo()
+                elif (event.key == pygame.K_z) and ctrl_down:
+                    game.undo()
+                elif (event.key == pygame.K_s) and ctrl_down:
+                    game.export()
+
+                elif (event.key == pygame.K_o) and ctrl_down:
+                    game.load_scenario()
                 else:
                     co_index = game.get_co_by_key(event.key)
                     if co_index is None:

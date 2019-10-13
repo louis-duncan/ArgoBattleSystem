@@ -9,5 +9,5 @@ echo Done.
 echo Installing pygame...
 pip install pygame
 echo Done.
-Install complete!
+echo Install complete!
 pause

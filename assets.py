@@ -29,7 +29,16 @@ class SpaceObject:
         self._location = list(location)
         self._ttl = -1
         self._colour = colour
-        self._sprite = pygame.image.load(os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour)))
+        self._sprite_name = os.path.join(SPRITE_FOLDER, "plane-{}.png".format(self._colour))
+        self._sprite = pygame.image.load(self._sprite_name)
+
+    def as_dict(self):
+        return {"description": self._description,
+                "direction": self._direction,
+                "location": self._location,
+                "ttl": self._ttl,
+                "colour": self._colour,
+                "sprite": self._sprite_name}
 
     def get_pos(self):
         return self._location
@@ -83,10 +92,10 @@ class SpaceObject:
 
 
 class TravelTrail(SpaceObject):
-    def __init__(self, description, direction, location, colour):
+    def __init__(self, description, direction, location, colour, ttl=4):
         super().__init__(description, direction, location, colour)
         self._sprite = pygame.image.load(os.path.join(SPRITE_FOLDER, "trail-{}.png".format(self._colour)))
-        self._ttl = 4
+        self._ttl = ttl
 
 
 class Ship(SpaceObject):
@@ -96,7 +105,7 @@ class Ship(SpaceObject):
         self._turn_history = []
 
 
-class Decoy(SpaceObject):
+class Station(SpaceObject):
     pass
 
 

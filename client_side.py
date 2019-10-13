@@ -120,7 +120,7 @@ class Display:
 
         if not self._sweep.finished:
             self._sweep.update()
-            col_to_refresh = (self._sweep.x_pos // self.cell_size)
+            col_to_refresh = ((self._sweep.x_pos + self._sweep.get_width()) // self.cell_size) - 1
             if col_to_refresh >= 0 and col_to_refresh != self._last_updated_col:
                 self._clear_column(col_to_refresh)
                 self._refill_column(col_to_refresh)
@@ -261,7 +261,7 @@ class ScreenObject:
 class Sweep:
     def __init__(self, rect, cell_size=20):
         self._rect = rect
-        self._speed = cell_size - 1
+        self._speed = int(cell_size / 2)
         self._sprite_width = 4 * cell_size
         self._sprite = pygame.transform.scale(SWEEP_SPRITE, (self._sprite_width, self._rect[3]))
         self.x_pos = -self._sprite_width
@@ -307,6 +307,9 @@ class Sweep:
     def reset(self):
         self.x_pos = -self._sprite_width
         self.finished = False
+
+    def get_width(self):
+        return self._sprite_width
 
 
 def main():
